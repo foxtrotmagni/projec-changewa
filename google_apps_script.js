@@ -12,7 +12,7 @@
 // KONFIGURASI
 // =====================================================================
 var TELEGRAM_TOKEN  = "8775838848:AAEsLxIpnvGpEfM2LtJIevaA_gh9kMs4uts";
-var PORTAL_BASE_URL = "file:///C:/Users/KHELFINE/Downloads/ujicoba/index.html";
+var PORTAL_BASE_URL = "https://projec-changewa.netlify.app/";
 var SPREADSHEET_ID  = "1cCHy-z_3-MAE5AkTOn_yQ_zbxtGUI6TzXw9Kc6zjf9c";
 
 var SHEET_RESPONSES = "FormResponses";

@@ -23,7 +23,7 @@ const TELEGRAM_TOKEN = "8775838848:AAEsLxIpnvGpEfM2LtJIevaA_gh9kMs4uts";
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRIJVW9m13d2HaHady_WokAjBxBsCQNehc60T_qlvxM_kE_TVC0Il9mwy_00pWnejQXw/exec";
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'database.json');
-const PORTAL_BASE_URL = process.env.DOMAIN_URL || `http://localhost:${PORT}/index.html`;
+const PORTAL_BASE_URL = process.env.DOMAIN_URL || "https://projec-changewa.netlify.app/";
 const TARGET_GROUP_ID = process.env.TARGET_GROUP_ID || "-5102720801";
 const AUTHORIZED_CLEAR_USERS = ["khelfine", "paopao11112022", "hlmnopxyz88"]; // Username Telegram backend yang diizinkan eksekusi /clear
 

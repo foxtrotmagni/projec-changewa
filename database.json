@@ -106,19 +106,19 @@
       "accessKey": "FX-YIF5E0"
     },
     {
-      "timestamp": "2026-07-24T03:01:13.644Z",
+      "timestamp": "2026-07-24T03:37:26.340Z",
       "chatId": "-5251728735",
-      "msgKey": "688",
+      "msgKey": "697",
       "mediaGroupId": null,
       "mediaGroupIds": [
-        "688"
+        "697"
       ],
       "asset": "E200M",
       "username": "FSFSFS",
-      "ticket": "FX-8TZBGX",
-      "status": "USED",
-      "opened": true,
-      "accessKey": "FX-8TZBGX"
+      "ticket": "FX-I2D5P3",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-I2D5P3"
     }
   ],
   "responses": [
@@ -184,15 +184,6 @@
       "namaLengkap": "AFAFAFAFAF",
       "waLama": "0812457878",
       "waBaru": "0832659812"
-    },
-    {
-      "timestamp": "2026-07-24T03:01:25.803Z",
-      "ticket": "FX-8TZBGX",
-      "website": "E200M",
-      "username": "FSFSFS",
-      "namaLengkap": "AFAFAFAFAF",
-      "waLama": "08124578787",
-      "waBaru": "0823245789865"
     }
   ]
 }

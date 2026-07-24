@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // jadikan halaman blank putih total untuk keamanan.
           var reason = data.reason || '';
           if (reason.indexOf('sudah') !== -1 || reason.indexOf('kedaluwarsa') !== -1 || reason.indexOf('digunakan') !== -1) {
-            document.body.innerHTML = '';
-            document.body.style.background = '#ffffff';
+            errorMessageEl.textContent = reason;
+            transitionCards(cardGate, cardError);
           } else {
             // Add card shaking effect for visual feedback
             cardGate.classList.add('shake');
@@ -369,20 +369,22 @@ document.addEventListener('DOMContentLoaded', () => {
             cardGate.classList.add('hidden');
             cardForm.classList.remove('hidden');
           } else {
-            // Jika link akses sudah kedaluwarsa atau tidak valid, kosongkan halaman (blank putih)
-            document.body.innerHTML = '';
-            document.body.style.background = '#ffffff';
+            // Jika link akses sudah kedaluwarsa atau tidak valid, tampilkan kartu error
+            errorMessageEl.textContent = data.reason || 'Tiket tidak valid atau tautan portal sudah kedaluwarsa.';
+            cardGate.classList.add('hidden');
+            cardForm.classList.add('hidden');
+            cardSuccess.classList.add('hidden');
+            cardError.classList.remove('hidden');
           }
         })
         .catch(error => {
           console.error('Error auto-verifying link key:', error);
-          document.body.innerHTML = '';
-          document.body.style.background = '#ffffff';
+          // Jika terjadi kesalahan koneksi, izinkan input manual via cardGate
+          cardGate.classList.remove('hidden');
         });
     } else {
-      // Keamanan super: Jika tautan diakses langsung tanpa kunci (?k=...), halaman langsung blank putih polos
-      document.body.innerHTML = '';
-      document.body.style.background = '#ffffff';
+      // Jika diakses langsung tanpa kunci (?k=...), tampilkan halaman verifikasi tiket manual (cardGate)
+      cardGate.classList.remove('hidden');
     }
   };
 
