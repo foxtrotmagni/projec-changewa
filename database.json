@@ -106,19 +106,19 @@
       "accessKey": "FX-YIF5E0"
     },
     {
-      "timestamp": "2026-07-24T03:37:26.340Z",
+      "timestamp": "2026-07-24T03:43:07.781Z",
       "chatId": "-5251728735",
-      "msgKey": "697",
+      "msgKey": "701",
       "mediaGroupId": null,
       "mediaGroupIds": [
-        "697"
+        "701"
       ],
       "asset": "E200M",
       "username": "FSFSFS",
-      "ticket": "FX-I2D5P3",
+      "ticket": "FX-4MTTBD",
       "status": "ACTIVE",
       "opened": false,
-      "accessKey": "FX-I2D5P3"
+      "accessKey": "FX-4MTTBD"
     }
   ],
   "responses": [
