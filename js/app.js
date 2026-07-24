@@ -6,13 +6,8 @@
    and transitions between steps.
 */
 
-// URL Endpoint API (Otomatis mendeteksi Server Node.js Lokal atau Google Apps Script)
-const REMOTE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRIJVW9m13d2HaHady_WokAjBxBsCQNehc60T_qlvxM_kE_TVC0Il9mwy_00pWnejQXw/exec';
-const LOCAL_SCRIPT_URL = 'http://localhost:3000/api';
-
-const SCRIPT_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-  ? LOCAL_SCRIPT_URL
-  : REMOTE_SCRIPT_URL;
+// URL Endpoint API Node.js Express Server (server.js)
+const SCRIPT_URL = window.SERVER_API_URL || 'http://localhost:3000/api';
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- DOM Elements ---
@@ -276,16 +271,20 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('wa_lama', formWaOld.value);
     formData.append('wa_baru', formWaNew.value);
 
-    // Send data to Google Apps Script
+    // Send data to Node.js Server (server.js)
     fetch(SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors', // Bypasses CORS redirect issues from Google Apps Script
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData
     })
-      .then(() => {
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.result === 'error') {
+          throw new Error(data.message || 'Gagal menyimpan data.');
+        }
+
         // 1. Update progress indicator
         step2.classList.add('completed');
         step3.classList.add('active');
