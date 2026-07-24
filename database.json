@@ -44,6 +44,36 @@
       "status": "ACTIVE",
       "opened": false,
       "accessKey": "FX-L8VGWE"
+    },
+    {
+      "timestamp": "2026-07-24T04:41:21.102Z",
+      "chatId": "-5251728735",
+      "msgKey": "736",
+      "mediaGroupId": "14278944218262557",
+      "mediaGroupIds": [
+        "736"
+      ],
+      "asset": "E200M",
+      "username": "SDADAD",
+      "ticket": "FX-GXCH3S",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-GXCH3S"
+    },
+    {
+      "timestamp": "2026-07-24T08:45:50.009Z",
+      "chatId": "-1003999365614",
+      "msgKey": "128",
+      "mediaGroupId": "14279061985422781",
+      "mediaGroupIds": [
+        "128"
+      ],
+      "asset": "E200M",
+      "username": "LANDFAG",
+      "ticket": "FX-77MMNU",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-77MMNU"
     }
   ],
   "responses": []
