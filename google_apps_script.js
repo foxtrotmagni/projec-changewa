@@ -171,14 +171,54 @@ function doGet(e) {
       var key = (e.parameter.key || "").toUpperCase().trim();
       var rowIndex = -1;
       for (var i = 1; i < data.length; i++) {
-        if ((data[i][8] || "").toString().toUpperCase().trim() === key) { rowIndex = i + 1; break; }
+        var rowAccessKey = (data[i][8] || "").toString().toUpperCase().trim();
+        var rowTicket    = (data[i][5] || "").toString().toUpperCase().trim();
+        if (rowAccessKey === key || rowTicket === key) { rowIndex = i + 1; break; }
       }
       if (rowIndex === -1) return jsonResponse({ result: "error", valid: false, reason: "Tautan tidak valid." });
       var opened = data[rowIndex - 1][7];
       if (opened === true || opened === "true")
         return jsonResponse({ result: "error", valid: false, reason: "Tautan sudah kedaluwarsa." });
       sheetTickets.getRange(rowIndex, 8).setValue(true);
-      return jsonResponse({ result: "success", valid: true });
+      
+      var foundAsset    = data[rowIndex - 1][3] || "";
+      var foundUsername = data[rowIndex - 1][4] || "";
+      var foundTicket   = data[rowIndex - 1][5] || "";
+
+      return jsonResponse({
+        result: "success",
+        valid: true,
+        ticket: foundTicket,
+        username: foundUsername,
+        website: foundAsset,
+        asset: foundAsset
+      });
+    }
+
+    if (action === "verify_ticket") {
+      var ticketCode = (e.parameter.ticket || "").toUpperCase().trim();
+      var rowIndex = -1;
+      for (var i = 1; i < data.length; i++) {
+        var rowTicket    = (data[i][5] || "").toString().toUpperCase().trim();
+        var rowAccessKey = (data[i][8] || "").toString().toUpperCase().trim();
+        if (rowTicket === ticketCode || rowAccessKey === ticketCode) { rowIndex = i + 1; break; }
+      }
+      if (rowIndex === -1) return jsonResponse({ result: "error", valid: false, reason: "Tiket tidak terdaftar." });
+      var status = data[rowIndex - 1][6];
+      if (status === "USED") return jsonResponse({ result: "error", valid: false, reason: "Tiket sudah digunakan." });
+
+      var foundAsset    = data[rowIndex - 1][3] || "";
+      var foundUsername = data[rowIndex - 1][4] || "";
+      var foundTicket   = data[rowIndex - 1][5] || "";
+
+      return jsonResponse({
+        result: "success",
+        valid: true,
+        ticket: foundTicket,
+        username: foundUsername,
+        website: foundAsset,
+        asset: foundAsset
+      });
     }
 
     if (action === "submit") {

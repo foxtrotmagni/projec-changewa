@@ -103,8 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (data.username) {
             formUsername.value = data.username.toUpperCase();
           }
-          if (data.website) {
-            formWebsite.value = data.website.toUpperCase();
+          const websiteVal = data.website || data.asset || '';
+          if (websiteVal) {
+            formWebsite.value = websiteVal.toUpperCase();
           }
 
           // Update progress indicator
@@ -357,8 +358,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.username) {
               formUsername.value = data.username.toUpperCase();
             }
-            if (data.website) {
-              formWebsite.value = data.website.toUpperCase();
+            const websiteVal = data.website || data.asset || '';
+            if (websiteVal) {
+              formWebsite.value = websiteVal.toUpperCase();
             }
 
             // Update progress indicator (langsung lompat ke Step 2)
