@@ -20,7 +20,6 @@ process.on('unhandledRejection', (reason, promise) => {
 // KONFIGURASI
 // =====================================================================
 const TELEGRAM_TOKEN = "8775838848:AAEsLxIpnvGpEfM2LtJIevaA_gh9kMs4uts";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRIJVW9m13d2HaHady_WokAjBxBsCQNehc60T_qlvxM_kE_TVC0Il9mwy_00pWnejQXw/exec";
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'database.json');
 const PORTAL_BASE_URL = process.env.DOMAIN_URL || "https://projec-changewa.netlify.app/";
@@ -97,34 +96,8 @@ function escapeHtml(text) {
   return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Sync ke Google Sheets (Follow 302 Redirects agar data 100% masuk ke Sheets)
-function syncToGoogleSheets(params) {
-  try {
-    const query = new URLSearchParams(params).toString();
-    const targetUrl = `${APPS_SCRIPT_URL}?${query}`;
-
-    function fetchWithRedirect(url, maxRedirects = 5) {
-      if (maxRedirects <= 0) return;
-      https.get(url, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          fetchWithRedirect(res.headers.location, maxRedirects - 1);
-        } else {
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            console.log(`[Google Sheets Sync Result]`, body.substring(0, 150));
-          });
-        }
-      }).on('error', (err) => {
-        console.log("[Sync Warning] Google Sheets sync error:", err.message);
-      });
-    }
-
-    fetchWithRedirect(targetUrl);
-  } catch (e) {
-    console.log("[Sync Exception]", e.message);
-  }
-}
+// Sync ke Google Sheets (Di-disable karena bot & database 100% menggunakan server.js)
+function syncToGoogleSheets(params) {}
 
 // =====================================================================
 // HELPER FORWARD BATCH (MELAKUKAN FORWARD 1 ALBUM LENGKAP SEKALIGUS)
