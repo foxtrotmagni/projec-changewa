@@ -14,6 +14,36 @@
       "status": "ACTIVE",
       "opened": false,
       "accessKey": "FX-GLX2S9"
+    },
+    {
+      "timestamp": "2026-07-24T04:13:40.438Z",
+      "chatId": "-5251728735",
+      "msgKey": "721",
+      "mediaGroupId": null,
+      "mediaGroupIds": [
+        "721"
+      ],
+      "asset": "KRING88",
+      "username": "SULAIMAN122",
+      "ticket": "FX-TSBITZ",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-TSBITZ"
+    },
+    {
+      "timestamp": "2026-07-24T04:17:10.116Z",
+      "chatId": "-5251728735",
+      "msgKey": "723",
+      "mediaGroupId": null,
+      "mediaGroupIds": [
+        "723"
+      ],
+      "asset": "E200M",
+      "username": "FSFSFS",
+      "ticket": "FX-L8VGWE",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-L8VGWE"
     }
   ],
   "responses": []

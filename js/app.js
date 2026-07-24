@@ -6,8 +6,8 @@
    and transitions between steps.
 */
 
-// URL Endpoint API Node.js Express Server (server.js)
-const SCRIPT_URL = window.SERVER_API_URL || 'http://localhost:3000/api';
+// URL Endpoint API Node.js Express Server (server.js di Render)
+const SCRIPT_URL = window.SERVER_API_URL || 'https://projec-changewa.onrender.com/api';
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- DOM Elements ---
