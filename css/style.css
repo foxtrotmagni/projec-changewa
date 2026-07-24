@@ -1,0 +1,474 @@
+/* 
+   style.css
+   Author: Antigravity AI
+   Description: Premium, highly-responsive stylesheet with glassmorphism, 
+   smooth floating background animations, and custom UI elements.
+*/
+
+/* --- Google Fonts --- */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* --- Design Tokens / Variables --- */
+:root {
+  --font-family: 'Plus Jakarta Sans', sans-serif;
+  
+  /* Color Palette */
+  --primary-deep: #083c2f;
+  --primary-medium: #0f5141;
+  --primary-light: #166c57;
+  --accent-mint: #22c55e;
+  --accent-glow: #10b981;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --text-light: #f8fafc;
+  
+  /* Status Colors */
+  --error: #ef4444;
+  --error-bg: #fee2e2;
+  --success: #22c55e;
+  
+  /* Glassmorphism Details */
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 20px 40px -15px rgba(8, 60, 47, 0.15);
+  
+  /* Border Radius */
+  --radius-lg: 24px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  
+  /* Transition durations */
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 0.2s ease;
+}
+
+/* --- Reset & Base Styles --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background: radial-gradient(circle at 50% 50%, #115e59 0%, #064e3b 50%, #022c22 100%);
+  color: var(--text-dark);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  position: relative;
+  padding: 20px;
+}
+
+/* --- Smooth Floating Background System --- */
+.background-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background: url('../assets/background.png') no-repeat center center;
+  background-size: cover;
+  opacity: 0.75;
+  filter: blur(10px);
+  animation: bgPulse 20s infinite alternate ease-in-out;
+}
+
+.floating-blobs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  mix-blend-mode: screen;
+}
+
+.blob-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, rgba(16, 185, 129, 0) 70%);
+  top: -10%;
+  left: -10%;
+  animation: floatSlow 25s infinite alternate ease-in-out;
+}
+
+.blob-2 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #0d9488 0%, rgba(13, 148, 136, 0) 70%);
+  bottom: -15%;
+  right: -10%;
+  animation: floatReverse 30s infinite alternate ease-in-out;
+}
+
+.blob-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #34d399 0%, rgba(52, 211, 153, 0) 70%);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: floatSlow 20s infinite alternate ease-in-out;
+}
+
+/* --- Container & Layout --- */
+.app-container {
+  width: 100%;
+  max-width: 650px;
+  perspective: 1000px;
+  z-index: 10;
+}
+
+/* --- Card Styles (Glassmorphism) --- */
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  padding: 40px;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform var(--transition-smooth), opacity var(--transition-smooth), visibility var(--transition-smooth);
+  position: relative;
+}
+
+/* Hide inactive cards smoothly */
+.card.hidden {
+  opacity: 0;
+  transform: translateY(30px) rotateX(-5deg);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+}
+
+/* --- Step/Progress Indicator --- */
+.progress-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--accent-glow), var(--accent-mint));
+  transform: translateX(-100%);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-bar.active::after {
+  transform: translateX(0);
+}
+
+.progress-bar.completed::after {
+  transform: translateX(0);
+  background: var(--primary-medium);
+}
+
+/* --- Headers and Text --- */
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-mint);
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--primary-deep);
+  line-height: 1.25;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+/* --- Form Layout --- */
+.form-group {
+  margin-bottom: 22px;
+  position: relative;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-deep);
+  margin-bottom: 8px;
+}
+
+label span {
+  color: var(--error);
+}
+
+/* --- Input Fields --- */
+input, select {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-family: var(--font-family);
+  color: var(--text-dark);
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+input::placeholder {
+  color: #a0aec0;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent-glow);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* Custom styling for read-only fields (e.g. ticket number display) */
+input[readonly] {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Dropdown arrow custom styling */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23083c2f' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+/* --- Separator --- */
+.section-separator {
+  position: relative;
+  text-align: center;
+  margin: 35px 0 25px;
+}
+
+.section-separator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.section-separator span {
+  position: relative;
+  background: var(--glass-bg);
+  padding: 0 15px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+/* --- Button Component --- */
+.btn-primary {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-light);
+  background: linear-gradient(135deg, var(--primary-medium), var(--primary-deep));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(8, 60, 47, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(8, 60, 47, 0.35);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-medium));
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* --- Restricted Warning Tooltip --- */
+.input-warning {
+  position: absolute;
+  bottom: -20px;
+  left: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--error);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.input-warning.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Highlight warning input border */
+.border-error {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* --- Footer & Notes --- */
+.footer-note {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 25px;
+}
+
+/* --- Success Animation Components --- */
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 25px;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: var(--success);
+  fill: none;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke-width: 3;
+  stroke: var(--success);
+  fill: none;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+}
+
+/* --- Keyframe Animations --- */
+@keyframes bgPulse {
+  0% { transform: scale(1.02); }
+  100% { transform: scale(1.08); }
+}
+
+@keyframes floatSlow {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 40px) scale(1.1); }
+  100% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes floatReverse {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, -30px) scale(0.9); }
+  100% { transform: translate(20px, -10px) scale(1.05); }
+}
+
+@keyframes stroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 640px) {
+  body {
+    padding: 15px;
+  }
+  
+  .card {
+    padding: 30px 20px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+/* --- Card Shake Animation for Rejection --- */
+.card.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+

@@ -1,0 +1,18 @@
+{
+  "name": "ujicoba",
+  "version": "1.0.0",
+  "description": "Landing page ini dirancang dengan gaya modern berbasis **Glassmorphic UI**, transisi layar yang mulus, animasi latar belakang yang lambat (smooth), serta pembatasan input yang ketat demi menjaga keamanan data pelanggan.",
+  "main": "google_apps_script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "node-telegram-bot-api": "^1.2.0"
+  }
+}
