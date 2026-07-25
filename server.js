@@ -659,7 +659,11 @@ bot.on('callback_query', async (query) => {
   const item = db.tickets.find(t => t.ticket === ticketCode);
   if (!item) {
     bot.answerCallbackQuery(query.id, { text: "❌ Tiket tidak ditemukan / sudah diproses.", show_alert: true }).catch(() => {});
-    updateAdminMessage(query, `⚠️ <b>[ Tiket ${ticketCode} sudah diproses ]</b>`);
+    if (actionType === 'already') {
+      updateAdminMessage(query, `⚠️<b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
+    } else {
+      updateAdminMessage(query, `⚠️ <b>[ Tiket ${ticketCode} sudah diproses ]</b>`);
+    }
     return;
   }
 
@@ -685,7 +689,7 @@ bot.on('callback_query', async (query) => {
     saveDatabase();
     bot.answerCallbackQuery(query.id, { text: "⚠️ Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain.", show_alert: true }).catch(() => {});
     await sendCustomerReply(targetCustomerChatId, `⚠️[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]`, originalMsgId);
-    updateAdminMessage(query, `⚠️ <b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
+    updateAdminMessage(query, `⚠️<b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
   }
 });
 
