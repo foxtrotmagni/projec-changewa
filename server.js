@@ -220,6 +220,9 @@ bot.onText(/\/start/i, (msg) => {
         { text: "🤖 PANDUAN & INFORMASI BOT 🤖", callback_data: "start_guidance" }
       ],
       [
+        { text: "🎟️ INFORMASI DAFTAR TIKET AKTIF (/TICKET)", callback_data: "start_ticket_info" }
+      ],
+      [
         { text: "⚙️ INFORMASI PERINTAH HAPUS DATABASE (/CLEAR)", callback_data: "start_clear_info" }
       ]
     ]
@@ -617,6 +620,25 @@ bot.on('callback_query', async (query) => {
       setTimeout(() => {
         bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => { });
         console.log(`[Auto Delete] Pesan panduan (${sent.message_id}) dihapus otomatis setelah 2 menit.`);
+      }, 120000);
+    }).catch(() => { });
+    return;
+  }
+
+  if (data === 'start_ticket_info') {
+    bot.answerCallbackQuery(query.id).catch(() => { });
+    // 1. Hapus seluruh pesan menu /start seketika saat tombol diklik
+    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => { });
+
+    const ticketInfoMsg = "🎟️ <b>INFORMASI PERINTAH DAFTAR TIKET AKTIF (/TICKET):</b>\n\n" +
+      "• <code>/ticket</code> atau <code>/tickets</code>\n" +
+      "  <i>(Menampilkan seluruh daftar tiket yang masih berstatus AKTIF, lengkap dengan info Asset, Username, status link opened, dan waktu penerbitan agar dapat mengecek member yang belum menggunakan tiket)</i>";
+
+    // 2. Kirim pesan informasi & hapus otomatis setelah 2 menit (120.000 ms)
+    bot.sendMessage(query.message.chat.id, ticketInfoMsg, { parse_mode: 'HTML' }).then((sent) => {
+      setTimeout(() => {
+        bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => { });
+        console.log(`[Auto Delete] Pesan info /ticket (${sent.message_id}) dihapus otomatis setelah 2 menit.`);
       }, 120000);
     }).catch(() => { });
     return;
