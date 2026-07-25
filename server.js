@@ -242,6 +242,37 @@ bot.onText(/\/debug/i, (msg) => {
   bot.sendMessage(chatId, report, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
 });
 
+// 2.5 Command /ticket ATAU /tickets (Menampilkan daftar seluruh tiket yang masih AKTIF)
+bot.onText(/\/(?:ticket|tickets)/i, (msg) => {
+  const chatId = msg.chat.id;
+  const activeList = db.tickets.filter(t => t.status === "ACTIVE");
+
+  if (activeList.length === 0) {
+    const noTicketMsg = "🎟️ <b>DAFTAR TIKET AKTIF (0)</b>\n\n" +
+      "Saat ini tidak ada tiket yang berstatus <b>AKTIF</b> di database.";
+    bot.sendMessage(chatId, noTicketMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+    return;
+  }
+
+  let report = `🎟️ <b>DAFTAR TIKET AKTIF (${activeList.length})</b>\n\n`;
+  activeList.forEach((t, i) => {
+    const openedStatus = t.opened ? "🔓 Opened (Link Sudah Dibuka)" : "🔒 Belum Dibuka";
+    const dateObj = new Date(t.timestamp);
+    const dateStr = dateObj.toLocaleDateString('id-ID', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    report += `${i + 1}. <b>${escapeHtml(t.ticket)}</b>\n` +
+      `   • Asset: <code>${escapeHtml(t.asset)}</code>\n` +
+      `   • Username: <code>${escapeHtml(t.username)}</code>\n` +
+      `   • Status Link: <b>${openedStatus}</b>\n` +
+      `   • Waktu: <code>${dateStr}</code>\n\n`;
+  });
+
+  bot.sendMessage(chatId, report.trim(), { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+});
+
 // 3. Command /clear (Bisa /clear untuk semua ATAU /clear FX-XXXXXX untuk tiket spesifik)
 bot.onText(/\/clear(?:\s+(.+))?/i, (msg, match) => {
   const chatId = msg.chat.id;
