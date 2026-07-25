@@ -267,6 +267,13 @@ bot.onText(/\/clear(?:\s+(.+))?/i, (msg, match) => {
 
     if (db.tickets.length < initialCount) {
       saveDatabase();
+
+      // Sync penghapusan ke Google Sheets
+      syncToGoogleSheets({
+        action: 'delete_ticket',
+        ticket: param
+      });
+
       const reply = `✅ Tiket <code>${escapeHtml(param)}</code> berhasil dihapus dari database oleh ${escapeHtml(senderDisplay)}.\n\n` +
         "Member dengan Asset & Username tersebut sekarang sudah dapat mengajukan permintaan tiket kembali.";
       bot.sendMessage(chatId, reply, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
@@ -616,6 +623,11 @@ bot.on('callback_query', async (query) => {
     db.tickets = [];
     db.responses = [];
     saveDatabase();
+
+    // Sync penghapusan seluruh data ke Google Sheets
+    syncToGoogleSheets({
+      action: 'delete_all'
+    });
 
     bot.answerCallbackQuery(query.id, { text: "✅ Database berhasil dibersihkan!", show_alert: true }).catch(() => {});
     bot.editMessageText(`✅ <b>Seluruh basis data tiket & respons berhasil dibersihkan oleh ${escapeHtml(clickerUsername)}.</b>\n\nSeluruh member/customer sekarang dapat mengajukan permintaan tiket baru kembali.`, {
