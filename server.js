@@ -368,7 +368,7 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
         `• Tiket: <code>${escapeHtml(existingForMsgKey.ticket)}</code>\n\n` +
         `🔗 Link Portal:\n<code>${escapeHtml(existingUrl)}</code>\n\n` +
         "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
-        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
+        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya Kak.";
       bot.sendMessage(chatId, notice, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       console.log(`[Bot Edit Updated] Tiket ${existingForMsgKey.ticket} diperbarui ke Asset: ${fullAssetName}, User: ${username}`);
       return;
@@ -425,7 +425,7 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
         `• Tiket: <code>${escapeHtml(existingActiveTicket.ticket)}</code>\n\n` +
         `🔗 Link Portal:\n<code>${escapeHtml(activeUrl)}</code>\n\n` +
         "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
-        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
+        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya Kak.";
 
       bot.sendMessage(chatId, activeNotice, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       console.log(`[Bot Existing Ticket Returned] Tiket ${existingActiveTicket.ticket} dikembalikan untuk ${username} (${fullAssetName})`);
@@ -477,7 +477,7 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
       `• Tiket: <code>${escapeHtml(newTicket)}</code>\n\n` +
       `🔗 Link Portal:\n<code>${escapeHtml(portalUrl)}</code>\n\n` +
       "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
-      "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
+      "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya Kak.";
 
     bot.sendMessage(chatId, successMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
     console.log(`[Bot Tiket Baru${isEdit ? ' (Pesan Edit)' : ''}] ${newTicket} (${fullAssetName} - ${username})`);
