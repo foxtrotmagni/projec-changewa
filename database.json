@@ -74,6 +74,96 @@
       "status": "ACTIVE",
       "opened": false,
       "accessKey": "FX-77MMNU"
+    },
+    {
+      "timestamp": "2026-07-24T12:33:18.650Z",
+      "chatId": "-1003999365614",
+      "msgKey": "155",
+      "mediaGroupId": "14279171159853045",
+      "mediaGroupIds": [
+        "155"
+      ],
+      "asset": "F200M",
+      "username": "MUHAMADGRD",
+      "ticket": "FX-3YY1NB",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-3YY1NB"
+    },
+    {
+      "timestamp": "2026-07-24T17:45:58.315Z",
+      "chatId": "-1003999365614",
+      "msgKey": "184",
+      "mediaGroupId": "14279321235614349",
+      "mediaGroupIds": [
+        "184"
+      ],
+      "asset": "F200M",
+      "username": "ERI2020",
+      "ticket": "FX-9Q5RJA",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-9Q5RJA"
+    },
+    {
+      "timestamp": "2026-07-24T18:41:33.971Z",
+      "chatId": "-1003999365614",
+      "msgKey": "213",
+      "mediaGroupId": "14279347918914037",
+      "mediaGroupIds": [
+        "213"
+      ],
+      "asset": "G200M",
+      "username": "LUCKYLUKMANA",
+      "ticket": "FX-0BT97F",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-0BT97F"
+    },
+    {
+      "timestamp": "2026-07-24T19:35:33.630Z",
+      "chatId": "-1003999365614",
+      "msgKey": "219",
+      "mediaGroupId": "14279373840118805",
+      "mediaGroupIds": [
+        "219"
+      ],
+      "asset": "F200M",
+      "username": "JOHANES86",
+      "ticket": "FX-BNFQHA",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-BNFQHA"
+    },
+    {
+      "timestamp": "2026-07-24T21:16:23.148Z",
+      "chatId": "-1003999365614",
+      "msgKey": "230",
+      "mediaGroupId": "14279422236187789",
+      "mediaGroupIds": [
+        "230"
+      ],
+      "asset": "KRING88",
+      "username": "SAMLONG21",
+      "ticket": "FX-2RLLKW",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-2RLLKW"
+    },
+    {
+      "timestamp": "2026-07-24T23:39:36.048Z",
+      "chatId": "-1003999365614",
+      "msgKey": "243",
+      "mediaGroupId": "14279490971805205",
+      "mediaGroupIds": [
+        "243"
+      ],
+      "asset": "F200M",
+      "username": "APRILIANDY",
+      "ticket": "FX-2ABVI7",
+      "status": "ACTIVE",
+      "opened": false,
+      "accessKey": "FX-2ABVI7"
     }
   ],
   "responses": []

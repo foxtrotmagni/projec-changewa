@@ -367,7 +367,8 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
         `• Username: <code>${escapeHtml(existingForMsgKey.username)}</code>\n` +
         `• Tiket: <code>${escapeHtml(existingForMsgKey.ticket)}</code>\n\n` +
         `🔗 Link Portal:\n<code>${escapeHtml(existingUrl)}</code>\n\n` +
-        "⚠️ Tautan hanya dapat diakses SATU KALI saja.";
+        "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
+        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
       bot.sendMessage(chatId, notice, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       console.log(`[Bot Edit Updated] Tiket ${existingForMsgKey.ticket} diperbarui ke Asset: ${fullAssetName}, User: ${username}`);
       return;
@@ -423,7 +424,8 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
         `• Username: <code>${escapeHtml(existingActiveTicket.username)}</code>\n` +
         `• Tiket: <code>${escapeHtml(existingActiveTicket.ticket)}</code>\n\n` +
         `🔗 Link Portal:\n<code>${escapeHtml(activeUrl)}</code>\n\n` +
-        "⚠️ Tautan hanya dapat diakses SATU KALI saja.";
+        "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
+        "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
 
       bot.sendMessage(chatId, activeNotice, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       console.log(`[Bot Existing Ticket Returned] Tiket ${existingActiveTicket.ticket} dikembalikan untuk ${username} (${fullAssetName})`);
@@ -474,7 +476,8 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
       `• Username: <code>${escapeHtml(username)}</code>\n` +
       `• Tiket: <code>${escapeHtml(newTicket)}</code>\n\n` +
       `🔗 Link Portal:\n<code>${escapeHtml(portalUrl)}</code>\n\n` +
-      "⚠️ Tautan hanya dapat diakses SATU KALI saja.";
+      "Silakan buka link yang kami kirim untuk mengisi nomor WhatsApp lama & baru.\n\n" +
+      "⚠️ Link hanya dapat diakses 1 kali. Pastikan seluruh data diisi hingga selesai. Setelah link dibuka, jangan melakukan refresh atau menutup halaman sebelum proses pengisian selesai ya, Kak.";
 
     bot.sendMessage(chatId, successMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
     console.log(`[Bot Tiket Baru${isEdit ? ' (Pesan Edit)' : ''}] ${newTicket} (${fullAssetName} - ${username})`);
@@ -680,9 +683,9 @@ bot.on('callback_query', async (query) => {
   } else if (actionType === 'already') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
-    bot.answerCallbackQuery(query.id, { text: "⚠️ TAMPILAN RESMI:\nnomor WA sudah terdaftar di ID yang lain, permintaan dibatalkan❌", show_alert: true }).catch(() => {});
-    await sendCustomerReply(targetCustomerChatId, "nomor WA sudah terdaftar di ID yang lain, permintaan dibatalkan❌", originalMsgId);
-    updateAdminMessage(query, `⚠️ <b>[ STATUS: Nomor WA Sudah Terdaftar oleh ${escapeHtml(clickerUsername)} ]</b>`);
+    bot.answerCallbackQuery(query.id, { text: "⚠️ Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain.", show_alert: true }).catch(() => {});
+    await sendCustomerReply(targetCustomerChatId, `⚠️[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]`, originalMsgId);
+    updateAdminMessage(query, `⚠️ <b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
   }
 });
 
