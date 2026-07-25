@@ -263,7 +263,7 @@ bot.onText(/\/(?:ticket|tickets)/i, (msg) => {
       hour: '2-digit', minute: '2-digit'
     });
 
-    report += `${i + 1}. <b>${escapeHtml(t.ticket)}</b>\n` +
+    report += `${i + 1}. <code>${escapeHtml(t.ticket)}</code>\n` +
       `   • Asset: <code>${escapeHtml(t.asset)}</code>\n` +
       `   • Username: <code>${escapeHtml(t.username)}</code>\n` +
       `   • Status Link: <b>${openedStatus}</b>\n` +
