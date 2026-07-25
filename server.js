@@ -685,6 +685,7 @@ bot.on('callback_query', async (query) => {
   if (actionType === 'done') {
     item.status = 'USED';
     saveDatabase();
+    syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'USED' });
     bot.answerCallbackQuery(query.id, { text: "✅ TAMPILAN RESMI:\nData berhasil di update✅", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
     updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>`);
@@ -692,6 +693,7 @@ bot.on('callback_query', async (query) => {
   } else if (actionType === 'reject') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
+    syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'REJECTED' });
     bot.answerCallbackQuery(query.id, { text: "❌ TAMPILAN RESMI:\nPermintaan Dibatalkan❌", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, "Permintaan Dibatalkan❌", originalMsgId);
     updateAdminMessage(query, `❌ <b>[ STATUS: Permintaan Dibatalkan oleh ${escapeHtml(clickerUsername)} ]</b>`);
@@ -699,6 +701,7 @@ bot.on('callback_query', async (query) => {
   } else if (actionType === 'already') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
+    syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'REJECTED' });
     bot.answerCallbackQuery(query.id, { text: "⚠️ Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain.", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, `⚠️[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]`, originalMsgId);
     updateAdminMessage(query, `⚠️<b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
@@ -736,6 +739,7 @@ app.all('/api', (req, res) => {
 
     item.opened = true;
     saveDatabase();
+    syncToGoogleSheets({ action: 'mark_opened', ticket: item.ticket });
     return res.json({
       result: "success",
       valid: true,
@@ -780,6 +784,7 @@ app.all('/api', (req, res) => {
       ticket, website, username, namaLengkap, waLama, waBaru
     });
     saveDatabase();
+    syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'USED' });
 
     // Forward SELURUH foto (album) ke Group Owner & Kirim Reply Notification + Tombol Aksi
     (async () => {
