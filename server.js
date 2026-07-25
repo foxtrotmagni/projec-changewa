@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // KONFIGURASI
 // =====================================================================
 const TELEGRAM_TOKEN = "8775838848:AAEsLxIpnvGpEfM2LtJIevaA_gh9kMs4uts";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRIJVW9m13d2HaHady_WokAjBxBsCQNehc60T_qlvxM_kE_TVC0Il9mwy_00pWnejQXw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1DuDR_5Zv9Y_lTT1FDfb9h2z7J9HU03o2TC-ldeeaRE3hpeE7DGlFVgA2I8Qy4vgnjA/exec";
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'database.json');
 const PORTAL_BASE_URL = process.env.DOMAIN_URL || "https://projec-changewa.netlify.app/";
@@ -316,7 +316,7 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
   if (chatType === 'private') {
     const rejectPrivateMsg = "⚠️ <b>PERMINTAAN TIKET DITOLAK</b>\n\n" +
       "Format permintaan tiket penggantian nomor WA hanya dapat diproses melalui obrolan <b>Grup Telegram</b>, bukan via Pesan Pribadi (Private Chat).";
-    bot.sendMessage(msg.chat.id, rejectPrivateMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id }).catch(() => {});
+    bot.sendMessage(msg.chat.id, rejectPrivateMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id }).catch(() => { });
     console.log(`[Bot Ignored Private Chat] Permintaan tiket dari ${msg.from ? msg.from.username || msg.from.first_name : 'User'} diabaikan karena dikirim via Private Chat.`);
     return;
   }
@@ -518,7 +518,7 @@ function updateAdminMessage(query, statusText) {
   const newContent = currentText + `\n\n${statusText}`;
 
   // 1. Selalu hapus tombol aksi agar tombol hilang setelah diklik!
-  bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: messageId }).catch(() => {});
+  bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: messageId }).catch(() => { });
 
   // 2. Perbarui Teks Caption/Pesan
   if (isMedia) {
@@ -573,9 +573,9 @@ bot.on('callback_query', async (query) => {
 
   // Handling Tombol Menu /start
   if (data === 'start_guidance') {
-    bot.answerCallbackQuery(query.id).catch(() => {});
+    bot.answerCallbackQuery(query.id).catch(() => { });
     // 1. Hapus seluruh pesan menu /start ("📋 MENU UTAMA BOT 📋...") seketika saat tombol diklik
-    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => {});
+    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => { });
 
     const guidanceMsg = "📌 <b>FORMAT PERMINTAAN TIKET:</b>\n\n" +
       "Halo! Silakan kirimkan permintaan tiket penggantian nomor WA dengan format berikut:\n\n" +
@@ -584,17 +584,17 @@ bot.on('callback_query', async (query) => {
     // 2. Kirim pesan panduan & hapus otomatis setelah 2 menit (120.000 ms)
     bot.sendMessage(query.message.chat.id, guidanceMsg, { parse_mode: 'HTML' }).then((sent) => {
       setTimeout(() => {
-        bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => {});
+        bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => { });
         console.log(`[Auto Delete] Pesan panduan (${sent.message_id}) dihapus otomatis setelah 2 menit.`);
       }, 120000);
-    }).catch(() => {});
+    }).catch(() => { });
     return;
   }
 
   if (data === 'start_clear_info') {
-    bot.answerCallbackQuery(query.id).catch(() => {});
+    bot.answerCallbackQuery(query.id).catch(() => { });
     // 1. Hapus seluruh pesan menu /start ("📋 MENU UTAMA BOT 📋...") seketika saat tombol diklik
-    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => {});
+    bot.deleteMessage(query.message.chat.id, query.message.message_id).catch(() => { });
 
     const clearInfoMsg = "⚙️ <b>INFORMASI PERINTAH HAPUS DATABASE (/CLEAR):</b>\n\n" +
       "• <code>/clear</code>\n" +
@@ -605,10 +605,10 @@ bot.on('callback_query', async (query) => {
     // 2. Kirim pesan informasi & hapus otomatis setelah 2 menit (120.000 ms)
     bot.sendMessage(query.message.chat.id, clearInfoMsg, { parse_mode: 'HTML' }).then((sent) => {
       setTimeout(() => {
-        bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => {});
+        bot.deleteMessage(query.message.chat.id, sent.message_id).catch(() => { });
         console.log(`[Auto Delete] Pesan info /clear (${sent.message_id}) dihapus otomatis setelah 2 menit.`);
       }, 120000);
-    }).catch(() => {});
+    }).catch(() => { });
     return;
   }
 
@@ -616,7 +616,7 @@ bot.on('callback_query', async (query) => {
   if (data === 'confirm_clear_all') {
     const senderUsername = query.from && query.from.username ? query.from.username.toLowerCase() : "";
     if (!AUTHORIZED_CLEAR_USERS.includes(senderUsername)) {
-      bot.answerCallbackQuery(query.id, { text: "⛔ Anda tidak memiliki izin eksekusi!", show_alert: true }).catch(() => {});
+      bot.answerCallbackQuery(query.id, { text: "⛔ Anda tidak memiliki izin eksekusi!", show_alert: true }).catch(() => { });
       return;
     }
 
@@ -629,24 +629,24 @@ bot.on('callback_query', async (query) => {
       action: 'delete_all'
     });
 
-    bot.answerCallbackQuery(query.id, { text: "✅ Database berhasil dibersihkan!", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "✅ Database berhasil dibersihkan!", show_alert: true }).catch(() => { });
     bot.editMessageText(`✅ <b>Seluruh basis data tiket & respons berhasil dibersihkan oleh ${escapeHtml(clickerUsername)}.</b>\n\nSeluruh member/customer sekarang dapat mengajukan permintaan tiket baru kembali.`, {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
       parse_mode: 'HTML'
-    }).catch(() => {});
+    }).catch(() => { });
 
     console.log(`[DB Clear Confirmed] Seluruh database dibersihkan oleh ${clickerUsername}.`);
     return;
   }
 
   if (data === 'cancel_clear_all') {
-    bot.answerCallbackQuery(query.id, { text: "❌ Penghapusan dibatalkan.", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "❌ Penghapusan dibatalkan.", show_alert: true }).catch(() => { });
     bot.editMessageText(`❌ <b>Penghapusan database dibatalkan oleh ${escapeHtml(clickerUsername)}.</b>`, {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
       parse_mode: 'HTML'
-    }).catch(() => {});
+    }).catch(() => { });
 
     console.log(`[DB Clear Canceled] Penghapusan database dibatalkan oleh ${clickerUsername}.`);
     return;
@@ -670,7 +670,7 @@ bot.on('callback_query', async (query) => {
 
   const item = db.tickets.find(t => t.ticket === ticketCode);
   if (!item) {
-    bot.answerCallbackQuery(query.id, { text: "❌ Tiket tidak ditemukan / sudah diproses.", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "❌ Tiket tidak ditemukan / sudah diproses.", show_alert: true }).catch(() => { });
     if (actionType === 'already') {
       updateAdminMessage(query, `⚠️<b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
     } else {
@@ -685,21 +685,21 @@ bot.on('callback_query', async (query) => {
   if (actionType === 'done') {
     item.status = 'USED';
     saveDatabase();
-    bot.answerCallbackQuery(query.id, { text: "✅ TAMPILAN RESMI:\nData berhasil di update✅", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "✅ TAMPILAN RESMI:\nData berhasil di update✅", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
     updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>`);
 
   } else if (actionType === 'reject') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
-    bot.answerCallbackQuery(query.id, { text: "❌ TAMPILAN RESMI:\nPermintaan Dibatalkan❌", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "❌ TAMPILAN RESMI:\nPermintaan Dibatalkan❌", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, "Permintaan Dibatalkan❌", originalMsgId);
     updateAdminMessage(query, `❌ <b>[ STATUS: Permintaan Dibatalkan oleh ${escapeHtml(clickerUsername)} ]</b>`);
 
   } else if (actionType === 'already') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
-    bot.answerCallbackQuery(query.id, { text: "⚠️ Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain.", show_alert: true }).catch(() => {});
+    bot.answerCallbackQuery(query.id, { text: "⚠️ Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain.", show_alert: true }).catch(() => { });
     await sendCustomerReply(targetCustomerChatId, `⚠️[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]`, originalMsgId);
     updateAdminMessage(query, `⚠️<b>[ Tiket ${ticketCode}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`);
   }
@@ -815,14 +815,14 @@ app.all('/api', (req, res) => {
                 try {
                   const fwd = await bot.forwardMessage(TARGET_GROUP_ID, item.chatId, mId);
                   if (fwd && fwd.message_id) lastFwdMsgId = fwd.message_id;
-                } catch (e) {}
+                } catch (e) { }
               }
             }
           } else if (msgIdsToForward.length === 1) {
             try {
               const fwd = await bot.forwardMessage(TARGET_GROUP_ID, item.chatId, msgIdsToForward[0]);
               if (fwd && fwd.message_id) lastFwdMsgId = fwd.message_id;
-            } catch (e) {}
+            } catch (e) { }
           }
 
           const adminNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
