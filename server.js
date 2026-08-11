@@ -891,7 +891,7 @@ app.all('/api', (req, res) => {
             `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
             "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
             "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
-            "@khelfine @PaoPao11112022 @Hlmnopxyz88";
+            "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
 
           const inlineKeyboard = {
             inline_keyboard: [
