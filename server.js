@@ -77,6 +77,67 @@ let db = {
   responses: []   // { timestamp, ticket, website, username, namaLengkap, waLama, waBaru }
 };
 
+function fetchUrlTextAsync(urlStr) {
+  return new Promise((resolve) => {
+    function req(u, depth = 5) {
+      if (depth <= 0) return resolve(null);
+      try {
+        https.get(u, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            req(res.headers.location, depth - 1);
+          } else if (res.statusCode === 200) {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => resolve(body));
+          } else {
+            resolve(null);
+          }
+        }).on('error', () => resolve(null));
+      } catch (e) {
+        resolve(null);
+      }
+    }
+    req(urlStr);
+  });
+}
+
+async function fetchCloudDatabaseOnStartup() {
+  try {
+    const rawUrl = "https://raw.githubusercontent.com/foxtrotmagni/projec-changewa/main/database.json?" + Date.now();
+    const rawText = await fetchUrlTextAsync(rawUrl);
+    if (rawText) {
+      const cloudDb = JSON.parse(rawText);
+      let mergedCount = 0;
+      if (Array.isArray(cloudDb.tickets)) {
+        cloudDb.tickets.forEach(t => {
+          const existing = db.tickets.find(e => e.ticket === t.ticket);
+          if (!existing) {
+            db.tickets.push(t);
+            mergedCount++;
+          } else {
+            if (t.status && t.status !== existing.status) existing.status = t.status;
+            if (t.opened !== undefined) existing.opened = t.opened;
+          }
+        });
+      }
+      if (Array.isArray(cloudDb.responses)) {
+        cloudDb.responses.forEach(r => {
+          if (!db.responses.some(existing => existing.ticket === r.ticket)) {
+            db.responses.push(r);
+            mergedCount++;
+          }
+        });
+      }
+      if (mergedCount > 0) {
+        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+        console.log(`[Cloud DB Persistent] Berhasil memuat ${mergedCount} data tiket dari Cloud Raw.`);
+      }
+    }
+  } catch (err) {
+    console.log("[Cloud DB Warning] Gagal sinkronkan dari Cloud Raw:", err.message);
+  }
+}
+
 function loadDatabase() {
   try {
     if (fs.existsSync(DB_FILE)) {
@@ -84,13 +145,16 @@ function loadDatabase() {
       db = JSON.parse(raw);
       if (!db.tickets) db.tickets = [];
       if (!db.responses) db.responses = [];
-      console.log(`[DB] Berhasil memuat ${db.tickets.length} tiket & ${db.responses.length} respons.`);
+      console.log(`[DB Local] Memuat ${db.tickets.length} tiket & ${db.responses.length} respons.`);
     } else {
       saveDatabase();
     }
   } catch (err) {
     console.error("[DB Error] Gagal memuat database:", err.message);
   }
+  
+  // Asynchronously fetch cloud database on startup
+  fetchCloudDatabaseOnStartup();
 }
 
 function saveDatabase() {
@@ -102,6 +166,7 @@ function saveDatabase() {
 }
 
 loadDatabase();
+
 
 // =====================================================================
 // HELPER FUNCTIONS
