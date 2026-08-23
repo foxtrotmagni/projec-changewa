@@ -4,8 +4,10 @@
   "description": "Landing page ini dirancang dengan gaya modern berbasis **Glassmorphic UI**, transisi layar yang mulus, animasi latar belakang yang lambat (smooth), serta pembatasan input yang ketat demi menjaga keamanan data pelanggan.",
   "main": "google_apps_script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "pip install -r requirements.txt || pip3 install -r requirements.txt || true"
   },
+
   "keywords": [],
   "author": "",
   "license": "ISC",
