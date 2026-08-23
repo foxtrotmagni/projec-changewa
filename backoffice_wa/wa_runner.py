@@ -24,7 +24,7 @@ async def run_check(data: dict) -> dict:
     
     merchant_code, base_url = resolve_merchant_and_url(username, raw_asset)
 
-    cookies_str = get_cookies()
+    cookies_str = get_cookies(domain=base_url, user_key=data.get("user_key"))
     
     if not cookies_str:
         return {"status": "error", "message": "Cookie backoffice belum terpasang."}
@@ -167,7 +167,7 @@ async def run_update(data: dict) -> dict:
     dupe_guids = data.get("dupe_guids", [])
     
     merchant_code, base_url = resolve_merchant_and_url(username, raw_asset)
-    cookies_str = get_cookies()
+    cookies_str = get_cookies(domain=base_url, user_key=data.get("user_key"))
 
     
     if not cookies_str:
@@ -246,10 +246,12 @@ async def run_update(data: dict) -> dict:
 async def run_setcookie(data: dict) -> dict:
     from config import set_cookies
     new_cookies = data.get("cookies", "").strip()
+    user_key = data.get("user_key")
     if not new_cookies:
         return {"status": "error", "message": "String cookie kosong."}
-    set_cookies(new_cookies)
+    set_cookies(new_cookies, user_key=user_key)
     return {"status": "success", "message": "Cookie Backoffice berhasil diperbarui & disimpan!"}
+
 
 def main():
     if len(sys.argv) < 2:

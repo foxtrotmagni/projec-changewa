@@ -45,12 +45,17 @@ def normalize_domain(domain_or_url: str) -> str:
     norm = norm.split("/")[0].split(":")[0]
     return norm if norm else "groupbo-gd3.zoomwlb.com"
 
-def get_cookies(domain: str = None) -> str:
+def get_cookies(domain: str = None, user_key: str = None) -> str:
     target_domain = normalize_domain(domain)
     if USER_COOKIES_FILE.exists():
         try:
             with open(USER_COOKIES_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                if user_key and str(user_key) in data:
+                    user_cookies = data[str(user_key)]
+                    if isinstance(user_cookies, dict) and target_domain in user_cookies and user_cookies[target_domain].strip():
+                        return user_cookies[target_domain].strip()
+
                 global_cookies = data.get("global", {})
                 if target_domain in global_cookies and global_cookies[target_domain].strip():
                     return global_cookies[target_domain].strip()
@@ -58,7 +63,7 @@ def get_cookies(domain: str = None) -> str:
             pass
     return AUDIT_COOKIES.strip()
 
-def set_cookies(new_cookies: str, domain: str = None) -> None:
+def set_cookies(new_cookies: str, domain: str = None, user_key: str = None) -> None:
     target_domain = normalize_domain(domain)
     data = {}
     if USER_COOKIES_FILE.exists():
@@ -67,16 +72,26 @@ def set_cookies(new_cookies: str, domain: str = None) -> None:
                 data = json.load(f)
         except Exception:
             data = {}
+            
+    clean_cookie = new_cookies.strip()
+    
     if "global" not in data or not isinstance(data.get("global"), dict):
         data["global"] = {}
-        
-    clean_cookie = new_cookies.strip()
     data["global"][target_domain] = clean_cookie
     data["global"]["groupbo-gd3.zoomwlb.com"] = clean_cookie
     data["global"]["groupbo-ggolf7.nexwlb.com"] = clean_cookie
-    
+
+    if user_key:
+        ukey = str(user_key)
+        if ukey not in data or not isinstance(data[ukey], dict):
+            data[ukey] = {}
+        data[ukey][target_domain] = clean_cookie
+        data[ukey]["groupbo-gd3.zoomwlb.com"] = clean_cookie
+        data[ukey]["groupbo-ggolf7.nexwlb.com"] = clean_cookie
+
     with open(USER_COOKIES_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
 
 
 def resolve_merchant_and_url(username: str, merchant_code_override: str = None) -> tuple[str, str]:

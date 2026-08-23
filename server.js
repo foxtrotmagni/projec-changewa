@@ -718,7 +718,8 @@ bot.on('message', async (msg) => {
 
     // Cookie body ada -> Simpan Cookie!
     pendingSetCookieUsers.delete(userId);
-    const res = await runBackofficeSetCookie({ cookies: cookieBody });
+    const res = await runBackofficeSetCookie({ cookies: cookieBody, user_key: userId });
+
     if (res && res.status === "success") {
       const okMsg = "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.";
       bot.sendMessage(chatId, okMsg, { parse_mode: 'HTML' }).catch(() => {
