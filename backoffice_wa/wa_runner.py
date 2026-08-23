@@ -3,19 +3,19 @@ import json
 import asyncio
 import logging
 from config import resolve_merchant_and_url, get_cookies, ADMIN_CC_TAGS
-from listing_service import (
-    search_player_by_username,
-    search_player_by_wa,
-    search_player_by_contact_no,
-    get_player_wa_verification_status,
-    get_player_balance,
-    get_player_current_contact,
-    scrape_and_update_contact
-)
 
 logging.basicConfig(level=logging.ERROR)
 
 async def run_check(data: dict) -> dict:
+    from listing_service import (
+        search_player_by_username,
+        search_player_by_wa,
+        search_player_by_contact_no,
+        get_player_wa_verification_status,
+        get_player_balance,
+        get_player_current_contact,
+        scrape_and_update_contact
+    )
     username = data.get("username", "").strip()
     raw_asset = data.get("asset", "").strip()
     old_wa = data.get("old_wa", "").strip()
@@ -23,6 +23,7 @@ async def run_check(data: dict) -> dict:
     telegram_name = data.get("telegram_name", "").strip()
     
     merchant_code, base_url = resolve_merchant_and_url(username, raw_asset)
+
     cookies_str = get_cookies()
     
     if not cookies_str:
@@ -154,6 +155,11 @@ async def run_check(data: dict) -> dict:
     }
 
 async def run_update(data: dict) -> dict:
+    from listing_service import (
+        get_player_current_contact,
+        scrape_and_update_contact,
+        search_player_by_username
+    )
     username = data.get("username", "").strip()
     raw_asset = data.get("asset", "").strip()
     player_guid = data.get("player_guid", "").strip()
@@ -162,6 +168,7 @@ async def run_update(data: dict) -> dict:
     
     merchant_code, base_url = resolve_merchant_and_url(username, raw_asset)
     cookies_str = get_cookies()
+
     
     if not cookies_str:
         return {"status": "error", "message": "Cookie backoffice belum terpasang."}

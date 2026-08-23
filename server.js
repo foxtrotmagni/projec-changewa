@@ -4,9 +4,23 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+// Auto-install python dependencies (httpx, bs4) on startup if missing
+function ensurePythonPackages() {
+  const pyCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+  execFile(pyCmd, ['-m', 'pip', 'install', '--break-system-packages', 'httpx', 'beautifulsoup4', 'python-dotenv'], (err) => {
+    if (err) {
+      execFile(pyCmd, ['-m', 'pip', 'install', '--user', 'httpx', 'beautifulsoup4', 'python-dotenv'], (err2) => {
+        if (!err2) console.log('[Python Packages] Auto-installed python packages successfully.');
+      });
+    } else {
+      console.log('[Python Packages] Auto-installed python packages successfully.');
+    }
+  });
+}
+ensurePythonPackages();
 
 function runPythonScript(args, payload, timeoutMs = 35000) {
+
   return new Promise((resolve) => {
     const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
     const primaryCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
