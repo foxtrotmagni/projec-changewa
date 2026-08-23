@@ -380,12 +380,12 @@ bot.onText(/\/setcookie(?:\s+([\s\S]+))?/i, async (msg, match) => {
   } else {
     pendingSetCookieUsers.add(userId);
     const promptMsg = "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE</b>\n\n" +
-      "Silakan balas/kirimkan string Cookie Session Backoffice Anda di bawah ini.\n\n" +
-      "<i>Contoh format:</i>\n" +
-      "<code>ASP.NET_SessionId=rktd3jzis0w...; __RequestVerificationToken=KHfX1Upn...</code>\n\n" +
-      "<i>(Ketik <code>/cancel</code> jika ingin membatalkan)</i>";
+      "Silakan kirimkan perintah beserta Cookie Backoffice Anda dengan format di bawah ini:\n\n" +
+      "<code>/setcookie ASP.NET_SessionId=rktd3jzis0wkrhated2hihewkfecplzof4x; __RequestVerificationToken=KHfX1UpntJAavV-QsFbPLehNWNnMUlUrnyRmYEDABZw4P86a0O5Mdcme5RUCLrgseCSO5A329HptX-MuXom9jkUyFRhf0W0rrW1bgkqNNG3teVglzKc1</code>\n\n" +
+      "<i>(Atau langsung balas pesan ini dengan string Cookie Anda)</i>";
     bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
   }
+
 });
 
 // Command /getcookie
@@ -716,13 +716,12 @@ bot.on('message', (msg) => {
     }
   }
 
-  // 2. Deteksi Otomatis Cookie string (ASP.NET_SessionId / __RequestVerificationToken)
-  const isCookiePattern = text.includes("ASP.NET_SessionId") || text.includes("__RequestVerificationToken");
-  if (isCookiePattern || (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/'))) {
+  // 2. Hanya terima cookie dari sesi interaktif /setcookie (jika user membalas prompt /setcookie)
+  if (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/')) {
     pendingSetCookieUsers.delete(userId);
     runBackofficeSetCookie({ cookies: text }).then(res => {
       if (res && res.status === "success") {
-        bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE TERDETEKSI & BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+        bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       } else {
         bot.sendMessage(msg.chat.id, `❌ <b>Gagal menyimpan cookie:</b> ${res ? res.message : 'Unknown error'}`, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       }
@@ -732,6 +731,7 @@ bot.on('message', (msg) => {
 
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 
 
