@@ -6,68 +6,50 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 
-function runBackofficeCheck(payload) {
+function runPythonScript(args, payload, timeoutMs = 35000) {
   return new Promise((resolve) => {
-    const pythonPath = process.env.PYTHON_PATH || 'python';
     const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
-    const child = execFile(pythonPath, [scriptPath, 'check'], { timeout: 35000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('[Backoffice Check Error]', error.message);
-        return resolve({ status: 'error', message: error.message });
-      }
-      try {
-        const res = JSON.parse(stdout.trim());
-        resolve(res);
-      } catch (e) {
-        resolve({ status: 'error', message: 'Failed to parse JSON response' });
-      }
-    });
-    child.stdin.write(JSON.stringify(payload));
-    child.stdin.end();
+    const primaryCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+    const fallbackCmd = primaryCmd === 'python3' ? 'python' : 'python3';
+
+    function attempt(cmd) {
+      const child = execFile(cmd, [scriptPath, ...args], { timeout: timeoutMs }, (error, stdout, stderr) => {
+        if (error) {
+          if (error.code === 'ENOENT' && cmd !== fallbackCmd) {
+            console.log(`[Python Runner] '${cmd}' not found, trying fallback '${fallbackCmd}'...`);
+            return attempt(fallbackCmd);
+          }
+          console.error(`[Python Runner Error with ${cmd}]`, error.message);
+          return resolve({ status: 'error', message: error.message });
+        }
+        try {
+          const res = JSON.parse(stdout.trim());
+          resolve(res);
+        } catch (e) {
+          console.error(`[Python Runner JSON Parse Error]`, stdout);
+          resolve({ status: 'error', message: 'Failed to parse JSON response' });
+        }
+      });
+      child.stdin.write(JSON.stringify(payload));
+      child.stdin.end();
+    }
+
+    attempt(primaryCmd);
   });
+}
+
+function runBackofficeCheck(payload) {
+  return runPythonScript(['check'], payload, 35000);
 }
 
 function runBackofficeUpdate(payload) {
-  return new Promise((resolve) => {
-    const pythonPath = process.env.PYTHON_PATH || 'python';
-    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
-    const child = execFile(pythonPath, [scriptPath, 'update'], { timeout: 45000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('[Backoffice Update Error]', error.message);
-        return resolve({ status: 'error', message: error.message });
-      }
-      try {
-        const res = JSON.parse(stdout.trim());
-        resolve(res);
-      } catch (e) {
-        resolve({ status: 'error', message: 'Failed to parse JSON response' });
-      }
-    });
-    child.stdin.write(JSON.stringify(payload));
-    child.stdin.end();
-  });
+  return runPythonScript(['update'], payload, 45000);
 }
 
 function runBackofficeSetCookie(payload) {
-  return new Promise((resolve) => {
-    const pythonPath = process.env.PYTHON_PATH || 'python';
-    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
-    const child = execFile(pythonPath, [scriptPath, 'setcookie'], { timeout: 15000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('[Backoffice SetCookie Error]', error.message);
-        return resolve({ status: 'error', message: error.message });
-      }
-      try {
-        const res = JSON.parse(stdout.trim());
-        resolve(res);
-      } catch (e) {
-        resolve({ status: 'error', message: 'Failed to parse JSON response' });
-      }
-    });
-    child.stdin.write(JSON.stringify(payload));
-    child.stdin.end();
-  });
+  return runPythonScript(['setcookie'], payload, 15000);
 }
+
 
 
 // Global Error Handler (Cegah bot mati jika koneksi internet terputus sementara)
