@@ -4,10 +4,52 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
-const http = require('http');
+const { execFile } = require('child_process');
+
+function runBackofficeCheck(payload) {
+  return new Promise((resolve) => {
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
+    const child = execFile(pythonPath, [scriptPath, 'check'], { timeout: 35000 }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('[Backoffice Check Error]', error.message);
+        return resolve({ status: 'error', message: error.message });
+      }
+      try {
+        const res = JSON.parse(stdout.trim());
+        resolve(res);
+      } catch (e) {
+        resolve({ status: 'error', message: 'Failed to parse JSON response' });
+      }
+    });
+    child.stdin.write(JSON.stringify(payload));
+    child.stdin.end();
+  });
+}
+
+function runBackofficeUpdate(payload) {
+  return new Promise((resolve) => {
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
+    const child = execFile(pythonPath, [scriptPath, 'update'], { timeout: 45000 }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('[Backoffice Update Error]', error.message);
+        return resolve({ status: 'error', message: error.message });
+      }
+      try {
+        const res = JSON.parse(stdout.trim());
+        resolve(res);
+      } catch (e) {
+        resolve({ status: 'error', message: 'Failed to parse JSON response' });
+      }
+    });
+    child.stdin.write(JSON.stringify(payload));
+    child.stdin.end();
+  });
+}
 
 // Global Error Handler (Cegah bot mati jika koneksi internet terputus sementara)
+
 process.on('uncaughtException', (err) => {
   console.error('[Global Warning] Uncaught Exception:', err.message || err);
 });
@@ -739,11 +781,29 @@ bot.on('callback_query', async (query) => {
     item.status = 'USED';
     saveDatabase();
     syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'USED' });
-    bot.answerCallbackQuery(query.id, { text: "✅ TAMPILAN RESMI:\nData berhasil di update✅", show_alert: true }).catch(() => { });
-    await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
-    updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>`);
+    bot.answerCallbackQuery(query.id, { text: "⏳ Mengeksekusi update di Backoffice...", show_alert: false }).catch(() => { });
 
-  } else if (actionType === 'reject') {
+    const respObj = db.responses.find(r => r.ticket === item.ticket) || {};
+    const boData = item.boCheck || {};
+    
+    const updateRes = await runBackofficeUpdate({
+      username: item.username,
+      asset: item.asset,
+      player_guid: boData.player_guid || "",
+      new_wa: respObj.waBaru || "",
+      dupe_guids: boData.dupe_guids || []
+    });
+
+    let detailStr = "";
+    if (updateRes && updateRes.detail_logs && updateRes.detail_logs.length > 0) {
+      detailStr = "\n\n<b>Detail Proses:</b>\n" + updateRes.detail_logs.join("\n");
+    }
+
+    await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
+    updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>${detailStr}`);
+
+  }
+ else if (actionType === 'reject') {
     item.status = 'REJECTED'; // Ubah status ke REJECTED agar customer BISA request tiket baru kembali!
     saveDatabase();
     syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'REJECTED' });
@@ -883,15 +943,35 @@ app.all('/api', (req, res) => {
             } catch (e) { }
           }
 
-          const adminNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
-            `• Asset: <code>${escapeHtml(website)}</code>\n` +
-            `• Username: <code>${escapeHtml(username)}</code>\n` +
-            `• Full Name : <code>${escapeHtml(namaLengkap)}</code>\n` +
-            `• Old Whatsapp : <code>${escapeHtml(waLama)}</code>\n` +
-            `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
-            "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
-            "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
-            "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+          const checkRes = await runBackofficeCheck({
+            username: username,
+            asset: website,
+            old_wa: waLama,
+            new_wa: waBaru,
+            telegram_name: namaLengkap
+          });
+
+          let adminNotice = "";
+          if (checkRes && checkRes.status === "success" && checkRes.report_text) {
+            item.boCheck = {
+              player_guid: checkRes.player_guid,
+              merchant_code: checkRes.merchant_code,
+              dupe_guids: checkRes.dupe_guids
+            };
+            saveDatabase();
+            adminNotice = checkRes.report_text;
+          } else {
+            adminNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
+              `• Asset: <code>${escapeHtml(website)}</code>\n` +
+              `• Username: <code>${escapeHtml(username)}</code>\n` +
+              `• Full Name : <code>${escapeHtml(namaLengkap)}</code>\n` +
+              `• Old Whatsapp : <code>${escapeHtml(waLama)}</code>\n` +
+              `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
+              "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
+              "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
+              "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+          }
+
 
           const inlineKeyboard = {
             inline_keyboard: [
