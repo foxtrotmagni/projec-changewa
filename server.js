@@ -364,7 +364,7 @@ bot.onText(/\/start/i, (msg) => {
 const pendingSetCookieUsers = new Set();
 
 // Command /setcookie (Bisa langsung dengan argumen ATAU interaktif)
-bot.onText(/\/setcookie(?:\s+([\s\S]+))?/i, async (msg, match) => {
+bot.onText(/\/setcookie(?:@\w+)?(?:\s+([\s\S]+))?/i, async (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from ? msg.from.id.toString() : "";
   const cookieArg = match && match[1] ? match[1].trim() : "";
@@ -385,12 +385,11 @@ bot.onText(/\/setcookie(?:\s+([\s\S]+))?/i, async (msg, match) => {
       "<i>(Atau langsung balas pesan ini dengan string Cookie Anda)</i>";
     bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
   }
-
-
 });
 
 // Command /getcookie
-bot.onText(/\/getcookie/i, (msg) => {
+bot.onText(/\/getcookie(?:@\w+)?/i, (msg) => {
+
   const chatId = msg.chat.id;
   const userCookiesFile = path.join(__dirname, 'backoffice_wa', 'user_cookies.json');
   let cookieStatus = "Belum ada cookie tersimpan.";
@@ -705,8 +704,9 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
 
 // Handling Pesan Baru (New Message)
 bot.on('message', (msg) => {
+  if (!msg) return;
   const userId = msg.from ? msg.from.id.toString() : "";
-  const text = (msg.text || "").trim();
+  const text = (msg.text || msg.caption || "").trim();
 
   // 1. Deteksi pembatalan /cancel
   if (text.toLowerCase() === '/cancel') {
@@ -717,10 +717,15 @@ bot.on('message', (msg) => {
     }
   }
 
-  // 2. Hanya terima cookie dari sesi interaktif /setcookie (jika user membalas prompt /setcookie)
-  if (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/')) {
+  // 2. Deteksi Cookie string jika dikirimkan sebagai balasan /setcookie ATAU jika teks mengandung token cookie
+  const isCookiePattern = text.includes("ASP.NET_SessionId") || text.includes("__RequestVerificationToken");
+  if (isCookiePattern || (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/'))) {
     pendingSetCookieUsers.delete(userId);
-    runBackofficeSetCookie({ cookies: text }).then(res => {
+    
+    // Bersihkan prefix /setcookie jika user menyertakannya dalam teks
+    let cleanCookie = text.replace(/^\/setcookie(?:@\w+)?\s*/i, '').trim();
+
+    runBackofficeSetCookie({ cookies: cleanCookie }).then(res => {
       if (res && res.status === "success") {
         bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       } else {
@@ -732,6 +737,7 @@ bot.on('message', (msg) => {
 
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 
 
