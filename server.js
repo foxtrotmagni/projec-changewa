@@ -381,10 +381,11 @@ bot.onText(/\/setcookie(?:\s+([\s\S]+))?/i, async (msg, match) => {
     pendingSetCookieUsers.add(userId);
     const promptMsg = "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE</b>\n\n" +
       "Silakan kirimkan perintah beserta Cookie Backoffice Anda dengan format di bawah ini:\n\n" +
-      "<code>/setcookie ASP.NET_SessionId=rktd3jzis0wkrhated2hihewkfecplzof4x; __RequestVerificationToken=KHfX1UpntJAavV-QsFbPLehNWNnMUlUrnyRmYEDABZw4P86a0O5Mdcme5RUCLrgseCSO5A329HptX-MuXom9jkUyFRhf0W0rrW1bgkqNNG3teVglzKc1</code>\n\n" +
+      "<code>/setcookie ASP.NET_SessionId=...; __RequestVerificationToken=...</code>\n\n" +
       "<i>(Atau langsung balas pesan ini dengan string Cookie Anda)</i>";
     bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
   }
+
 
 });
 
