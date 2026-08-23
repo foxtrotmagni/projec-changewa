@@ -5,8 +5,9 @@
   "main": "google_apps_script.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "pip install -r requirements.txt || pip3 install -r requirements.txt || true"
+    "postinstall": "pip3 install --break-system-packages -r requirements.txt || pip install --break-system-packages -r requirements.txt || pip3 install --user -r requirements.txt || pip install -r requirements.txt || true"
   },
+
 
   "keywords": [],
   "author": "",

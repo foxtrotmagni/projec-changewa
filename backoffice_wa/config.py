@@ -1,11 +1,15 @@
 import os
 import json
 from pathlib import Path
-from dotenv import load_dotenv
 
-ENV_PATH = Path(__file__).parent.parent / ".env"
-if ENV_PATH.exists():
-    load_dotenv(dotenv_path=ENV_PATH)
+try:
+    from dotenv import load_dotenv
+    ENV_PATH = Path(__file__).parent.parent / ".env"
+    if ENV_PATH.exists():
+        load_dotenv(dotenv_path=ENV_PATH)
+except Exception:
+    pass
+
 
 AUDIT_COOKIES = os.getenv("AUDIT_COOKIES", "")
 DEFAULT_BASE_URL = os.getenv("DEFAULT_BASE_URL", "https://groupbo-gd3.zoomwlb.com")
