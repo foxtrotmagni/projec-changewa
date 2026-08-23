@@ -4,10 +4,51 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-// Global Error Handler (Cegah bot mati jika koneksi internet terputus sementara)
+const { execFile } = require('child_process');
+const ADMIN_CC_TAGS = "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
 
+function runPythonScript(args, payload, timeoutMs = 35000) {
+  return new Promise((resolve) => {
+    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
+    const primaryCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+    const fallbackCmd = primaryCmd === 'python3' ? 'python' : 'python3';
+
+    function attempt(cmd) {
+      const child = execFile(cmd, [scriptPath, ...args], { timeout: timeoutMs }, (error, stdout, stderr) => {
+        if (error) {
+          if (error.code === 'ENOENT' && cmd !== fallbackCmd) {
+            console.log(`[Python Runner] '${cmd}' not found, trying fallback '${fallbackCmd}'...`);
+            return attempt(fallbackCmd);
+          }
+          console.error(`[Python Runner Error with ${cmd}]`, error.message);
+          return resolve({ status: 'error', message: error.message });
+        }
+        try {
+          const res = JSON.parse(stdout.trim());
+          resolve(res);
+        } catch (e) {
+          console.error(`[Python Runner JSON Parse Error]`, stdout);
+          resolve({ status: 'error', message: 'Failed to parse JSON response' });
+        }
+      });
+      child.stdin.write(JSON.stringify(payload));
+      child.stdin.end();
+    }
+
+    attempt(primaryCmd);
+  });
+}
+
+function runBackofficeCheck(payload) {
+  return runPythonScript(['check'], payload, 35000);
+}
+
+function runBackofficeUpdate(payload) {
+  return runPythonScript(['update'], payload, 45000);
+}
 
 process.on('uncaughtException', (err) => {
+
   console.error('[Global Warning] Uncaught Exception:', err.message || err);
 });
 
@@ -1093,14 +1134,76 @@ app.all('/api', (req, res) => {
             sendReqOpts.reply_to_message_id = lastFwdMsgId;
           }
 
+          let reqSentMsg = null;
           try {
-            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
+            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
           } catch (errReq) {
             delete sendReqOpts.reply_to_message_id;
-            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
+            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
           }
 
+          // 2. Kirim PESAN 2: Hasil Pengecekan Nomor WA Baru + Tombol Aksi (Me-reply Pesan 1)
+          let checkRes = null;
+          try {
+            checkRes = await runBackofficeCheck({
+              username: username,
+              asset: website,
+              old_wa: waLama,
+              new_wa: waBaru,
+              telegram_name: namaLengkap
+            });
+          } catch (e) {
+            checkRes = null;
+          }
+
+          let checkReportText = "";
+          if (checkRes && checkRes.status === "success" && checkRes.report_text) {
+            item.boCheck = {
+              player_guid: checkRes.player_guid,
+              merchant_code: checkRes.merchant_code,
+              dupe_guids: checkRes.dupe_guids
+            };
+            saveDatabase();
+            checkReportText = checkRes.report_text;
+          } else {
+            checkReportText = "🔍 <b>PENGECEKAN NOMOR WHATSAPP BARU</b>\n\n" +
+              `Player  : <code>${escapeHtml(username)}</code>\n` +
+              `Asset   : <code>${escapeHtml(website)}</code>\n` +
+              `Nama    : <b>${escapeHtml(namaLengkap)}</b>\n` +
+              `Old WA  : <code>${escapeHtml(waLama)}</code>\n` +
+              `New WA  : <code>${escapeHtml(waBaru)}</code>\n\n` +
+              "<b>Status :</b>\n⚠️ <i>Gagal menghubungi backoffice check. Silakan periksa manual.</i>\n\n" +
+              "Lanjutkan pergantian nomor WhatsApp?\n\n" +
+              `🔔 <b>CC:</b> ${ADMIN_CC_TAGS}`;
+          }
+
+          const inlineKeyboard = {
+            inline_keyboard: [
+              [
+                { text: "🟢 Done Update", callback_data: `btn_done_${ticket}` },
+                { text: "🔴 Reject", callback_data: `btn_reject_${ticket}` }
+              ],
+              [
+                { text: "🟪 Already Registered", callback_data: `btn_already_${ticket}` }
+              ]
+            ]
+          };
+
+          const checkOpts = {
+            parse_mode: 'HTML',
+            reply_markup: inlineKeyboard
+          };
+          if (reqSentMsg && reqSentMsg.message_id) {
+            checkOpts.reply_to_message_id = reqSentMsg.message_id;
+          }
+
+          await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts).catch(async () => {
+            delete checkOpts.reply_to_message_id;
+            await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts);
+          });
+
           console.log(`[Admin Notice Sent] Ticket ${ticket} request notice sent to ${TARGET_GROUP_ID}`);
+
 
 
         }
