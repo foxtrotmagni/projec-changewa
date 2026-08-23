@@ -30,8 +30,11 @@ async def run_check(data: dict) -> dict:
         return {"status": "error", "message": "Cookie backoffice belum terpasang."}
         
     players = await search_player_by_username(username, merchant_code, base_url, cookies_str)
+    if players and len(players) == 1 and players[0].get("_error") == "COOKIE_EXPIRED":
+        return {"status": "error", "message": "🔑 Cookie Backoffice telah kadaluarsa / di-logout. Silakan kirim /setcookie terbaru dari browser Backoffice yang sedang login."}
     if not players:
-        return {"status": "error", "message": f"Player {username} tidak ditemukan di {merchant_code}."}
+        return {"status": "error", "message": f"Player {username} tidak ditemukan di {merchant_code} (atau Cookie kadaluarsa)."}
+
         
     player_data = players[0]
     player_guid = player_data.get("recid", "")

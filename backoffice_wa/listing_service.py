@@ -96,6 +96,10 @@ async def search_player_by_username(username: str, merchant_code: str, base_url:
     try:
         async with _build_client(base_url, cookies_str) as client:
             resp = await client.post(url, data=payload, headers=headers)
+            raw_text = resp.text.strip()
+            if "<html" in raw_text.lower() or "login" in str(resp.url).lower() or "account/login" in raw_text.lower():
+                logger.warning("[search_player_by_username] Redirected to login page. Cookie is expired.")
+                return [{"_error": "COOKIE_EXPIRED", "_msg": "Cookie Backoffice telah kadaluarsa / di-logout."}]
             if resp.status_code == 200:
                 data = resp.json()
                 items = data.get("items", []) or []
@@ -105,6 +109,7 @@ async def search_player_by_username(username: str, merchant_code: str, base_url:
     except Exception as e:
         logger.error(f"[search_player_by_username] Error: {e}")
     return []
+
 
 async def search_player_by_wa(wa_number: str, merchant_code: str, base_url: str, cookies_str: str) -> list[dict]:
     url = f"{base_url}/Player/_PlayerListing"

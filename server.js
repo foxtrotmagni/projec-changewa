@@ -1166,16 +1166,18 @@ app.all('/api', (req, res) => {
             saveDatabase();
             checkReportText = checkRes.report_text;
           } else {
+            const errDetail = checkRes && checkRes.message ? escapeHtml(checkRes.message) : "Gagal menghubungi backoffice check. Silakan periksa manual.";
             checkReportText = "🔍 <b>PENGECEKAN NOMOR WHATSAPP BARU</b>\n\n" +
               `Player  : <code>${escapeHtml(username)}</code>\n` +
               `Asset   : <code>${escapeHtml(website)}</code>\n` +
               `Nama    : <b>${escapeHtml(namaLengkap)}</b>\n` +
               `Old WA  : <code>${escapeHtml(waLama)}</code>\n` +
               `New WA  : <code>${escapeHtml(waBaru)}</code>\n\n` +
-              "<b>Status :</b>\n⚠️ <i>Gagal menghubungi backoffice check. Silakan periksa manual.</i>\n\n" +
+              `<b>Status :</b>\n⚠️ <i>${errDetail}</i>\n\n` +
               "Lanjutkan pergantian nomor WhatsApp?\n\n" +
               `🔔 <b>CC:</b> ${ADMIN_CC_TAGS}`;
           }
+
 
           const inlineKeyboard = {
             inline_keyboard: [
