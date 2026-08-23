@@ -333,13 +333,15 @@ async def main():
                             if text.startswith("/setcookie"):
                                 cookie_arg = text.replace("/setcookie", "").replace("@FOX_x_BOT", "").strip()
                                 if cookie_arg:
-                                    set_cookies(cookie_arg)
+                                    sender_id = msg.get("from", {}).get("id")
+                                    set_cookies(cookie_arg, user_key=sender_id)
                                     await tg_post("sendMessage", {
                                         "chat_id": msg["chat"]["id"],
                                         "text": "✅ <b>COOKIE BACKOFFICE WORKER LOKAL BERHASIL DISIMPAN!</b>",
                                         "parse_mode": "HTML",
                                         "reply_to_message_id": msg_id
                                     })
+
                             
                             # Detect Request Notice from Render Bot
                             elif msg.get("chat", {}).get("id") == TARGET_GROUP_ID and msg_id not in processed_msg_ids:
