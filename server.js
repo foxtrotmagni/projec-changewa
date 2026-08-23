@@ -7,45 +7,273 @@ const path = require('path');
 const { execFile } = require('child_process');
 const ADMIN_CC_TAGS = "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
 
-function runPythonScript(args, payload, timeoutMs = 35000) {
-  return new Promise((resolve) => {
-    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
-    const primaryCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
-    const fallbackCmd = primaryCmd === 'python3' ? 'python' : 'python3';
+function getCookieJS(domain, userKey) {
+  if (fs.existsSync(USER_COOKIES_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(USER_COOKIES_FILE, 'utf8'));
+      const targetDomain = domain || "groupbo-gd3.zoomwlb.com";
+      if (userKey && data[String(userKey)]) {
+        const uVal = data[String(userKey)];
+        if (typeof uVal === 'object' && uVal[targetDomain]) return uVal[targetDomain].trim();
+      }
+      if (data.global && data.global[targetDomain]) return data.global[targetDomain].trim();
+      for (const k in data.global || {}) {
+        if (data.global[k]) return data.global[k].trim();
+      }
+    } catch (e) {}
+  }
+  return "";
+}
 
-    function attempt(cmd) {
-      const child = execFile(cmd, [scriptPath, ...args], { timeout: timeoutMs }, (error, stdout, stderr) => {
-        if (error) {
-          if (error.code === 'ENOENT' && cmd !== fallbackCmd) {
-            console.log(`[Python Runner] '${cmd}' not found, trying fallback '${fallbackCmd}'...`);
-            return attempt(fallbackCmd);
-          }
-          console.error(`[Python Runner Error with ${cmd}]`, error.message);
-          return resolve({ status: 'error', message: error.message });
-        }
-        try {
-          const res = JSON.parse(stdout.trim());
-          resolve(res);
-        } catch (e) {
-          console.error(`[Python Runner JSON Parse Error]`, stdout);
-          resolve({ status: 'error', message: 'Failed to parse JSON response' });
-        }
-      });
-      child.stdin.write(JSON.stringify(payload));
-      child.stdin.end();
+function resolveMerchantJS(rawAsset) {
+  const code = (rawAsset || "").trim().toUpperCase();
+  if (code.includes("GOLF7") || code.includes("GGOLF7") || code.includes("NEXWLB")) return "GGOLF7";
+  if (code.startsWith("G200") || code === "D20" || code === "GD3") return "D20";
+  return code || "D20";
+}
+
+function resolveBaseUrlJS(merchantCode) {
+  if (merchantCode === "GGOLF7") return "https://groupbo-ggolf7.nexwlb.com";
+  return "https://groupbo-gd3.zoomwlb.com";
+}
+
+async function searchPlayerJS(username, merchantCode, baseUrl, cookiesStr) {
+  const url = `${baseUrl}/Player/_PlayerListing`;
+  const body = new URLSearchParams({
+    MerchantCode: merchantCode,
+    Username: username.trim(),
+    PageSize: '10',
+    PageIndex: '1'
+  }).toString();
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Cookie': cookiesStr,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Origin': baseUrl,
+        'Referer': `${baseUrl}/Player/PlayerListing`
+      },
+      body: body
+    });
+
+    const rawText = await res.text();
+    const lowerText = rawText.toLowerCase();
+    if (lowerText.includes('<html') || lowerText.includes('title>oops') || lowerText.includes('login') || res.url.includes('Login')) {
+      return { error: 'COOKIE_EXPIRED', message: '🔑 Cookie Backoffice telah kadaluarsa / di-logout. Silakan kirim /setcookie terbaru dari browser Backoffice yang sedang login.' };
     }
 
-    attempt(primaryCmd);
+    const data = JSON.parse(rawText);
+    const items = data.items || [];
+    const cleanTarget = username.trim().toLowerCase();
+    const exact = items.filter(p => (p.username || '').trim().toLowerCase() === cleanTarget);
+    return { error: null, items: exact.length > 0 ? exact : items };
+  } catch (e) {
+    return { error: 'PARSE_ERROR', message: `Gagal membaca data dari Backoffice (${e.message}).` };
+  }
+}
+
+async function searchPlayerByWaJS(waNumber, merchantCode, baseUrl, cookiesStr) {
+  if (!waNumber) return [];
+  const url = `${baseUrl}/Player/_PlayerListing`;
+  const body = new URLSearchParams({
+    MerchantCode: merchantCode,
+    WhatsappNo: waNumber.trim(),
+    PageSize: '10',
+    PageIndex: '1'
+  }).toString();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Cookie': cookiesStr,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      body: body
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.items || [];
+    }
+  } catch (e) {}
+  return [];
+}
+
+async function searchPlayerByContactNoJS(contactNo, merchantCode, baseUrl, cookiesStr) {
+  if (!contactNo) return [];
+  const url = `${baseUrl}/Player/_PlayerListing`;
+  const body = new URLSearchParams({
+    MerchantCode: merchantCode,
+    ContactNo: contactNo.trim(),
+    PageSize: '10',
+    PageIndex: '1'
+  }).toString();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Cookie': cookiesStr,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      body: body
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.items || [];
+    }
+  } catch (e) {}
+  return [];
+}
+
+async function getPlayerBalanceJS(username, merchantCode, baseUrl, cookiesStr) {
+  const url = `${baseUrl}/Player/GetPlayerBalance`;
+  const body = new URLSearchParams({ username, merchantcode: merchantCode }).toString();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Cookie': cookiesStr,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'Mozilla/5.0'
+      },
+      body: body
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const bal = (data.balance !== undefined && data.balance !== null) ? String(data.balance).trim() : '0.00';
+      const lock = (data.balancelock !== undefined && data.balancelock !== null) ? String(data.balancelock).trim() : '0.00';
+      return `${bal} [${lock}]`;
+    }
+  } catch (e) {}
+  return '0.00 [0.00]';
+}
+
+async function runBackofficeCheckJS(payload) {
+  const username = (payload.username || '').trim();
+  const rawAsset = (payload.asset || '').trim();
+  const oldWa = (payload.old_wa || '').trim();
+  const newWa = (payload.new_wa || '').trim();
+  const telegramName = (payload.telegram_name || '').trim();
+
+  const merchantCode = resolveMerchantJS(rawAsset);
+  const baseUrl = resolveBaseUrlJS(merchantCode);
+  const cookiesStr = getCookieJS(baseUrl, payload.user_key);
+
+  if (!cookiesStr) {
+    return { status: 'error', message: '🔑 Cookie Backoffice belum terpasang. Silakan kirim /setcookie.' };
+  }
+
+  const searchRes = await searchPlayerJS(username, merchantCode, baseUrl, cookiesStr);
+  if (searchRes.error === 'COOKIE_EXPIRED') {
+    return { status: 'error', message: searchRes.message };
+  }
+  if (searchRes.error || !searchRes.items || searchRes.items.length === 0) {
+    return { status: 'error', message: searchRes.message || `Player ${username} tidak ditemukan di ${merchantCode}.` };
+  }
+
+  const playerData = searchRes.items[0];
+  const playerGuid = playerData.recid || '';
+  const boUsername = playerData.username || username;
+  const boFullname = playerData.full_Name || username;
+
+  const [newWaRes, newContactRes, oldWaRes] = await Promise.all([
+    searchPlayerByWaJS(newWa, merchantCode, baseUrl, cookiesStr),
+    searchPlayerByContactNoJS(newWa, merchantCode, baseUrl, cookiesStr),
+    oldWa ? searchPlayerByWaJS(oldWa, merchantCode, baseUrl, cookiesStr) : Promise.resolve([])
+  ]);
+
+  const validNewWa = newWaRes.filter(p => p.username);
+  const validNewContact = newContactRes.filter(p => p.username);
+  const validOldWa = oldWaRes.filter(p => p.username);
+
+  const balanceStr = await getPlayerBalanceJS(boUsername, merchantCode, baseUrl, cookiesStr);
+
+  let nameStatus = '';
+  if (telegramName) {
+    if (telegramName.trim().toUpperCase() === boFullname.trim().toUpperCase()) {
+      nameStatus = ' (VALID)';
+    } else {
+      nameStatus = ' (TIDAK VALID)';
+    }
+  }
+
+  const dupeGuids = [];
+  const allDupes = {};
+  [...validNewWa, ...validNewContact].forEach(p => {
+    if (p.username) allDupes[p.username.toLowerCase()] = p;
   });
+
+  Object.keys(allDupes).forEach(uLower => {
+    const p = allDupes[uLower];
+    if (p.username && p.recid && p.username.toLowerCase() !== boUsername.toLowerCase()) {
+      const isWa = validNewWa.some(x => (x.username || '').toLowerCase() === uLower);
+      const isContact = validNewContact.some(x => (x.username || '').toLowerCase() === uLower);
+      dupeGuids.push({
+        username: p.username,
+        recid: p.recid,
+        has_wa_dupe: isWa,
+        has_contact_dupe: isContact
+      });
+    }
+  });
+
+  const lines = [
+    '🔍 <b>PENGECEKAN NOMOR WHATSAPP BARU</b>\n',
+    `Player  : <code>${boUsername}</code>`,
+    `Asset   : <code>${merchantCode}</code>`,
+    `Nama    : <b>${boFullname}</b>${nameStatus}`,
+    `Balance : <code>${balanceStr}</code> 💰`
+  ];
+
+  if (oldWa) {
+    const oldParts = [];
+    if (validOldWa.length > 0) {
+      oldParts.push(`💬 WA → ${validOldWa.slice(0, 3).map(p => `<code>${p.username}</code>`).join(', ')}`);
+    }
+    lines.push(`Old WA  : <code>${oldWa}</code> <i>(${oldParts.length > 0 ? oldParts.join(' | ') : 'Belum terdaftar'})</i>`);
+  }
+
+  lines.push(`New WA  : <code>${newWa}</code>\n`);
+
+  if (validNewWa.length > 0 || validNewContact.length > 0) {
+    lines.push('<b>Status :</b>');
+    lines.push('⚠️ <b>Terdeteksi duplikat pada nomor baru:</b>');
+    if (validNewWa.length > 0) {
+      lines.push(`   💬 <b>WhatsApp No</b> → ${validNewWa.slice(0, 3).map(p => `<code>${p.username}</code>`).join(', ')}`);
+    }
+    if (validNewContact.length > 0) {
+      lines.push(`   📞 <b>Nomor Kontak</b> → ${validNewContact.slice(0, 3).map(p => `<code>${p.username}</code>`).join(', ')}`);
+    }
+  } else {
+    lines.push('<b>Status :</b>');
+    lines.push('✅ <b>Nomor WhatsApp baru bersih & belum pernah terdaftar.</b>');
+  }
+
+  lines.push('\n━━━━━━━━━━━━━━━');
+  lines.push('Lanjutkan pergantian nomor WhatsApp?');
+  lines.push(`\n🔔 <b>CC:</b> ${ADMIN_CC_TAGS}`);
+
+  return {
+    status: 'success',
+    report_text: lines.join('\n'),
+    player_guid: playerGuid,
+    merchant_code: merchantCode,
+    dupe_guids: dupeGuids
+  };
 }
 
 function runBackofficeCheck(payload) {
-  return runPythonScript(['check'], payload, 35000);
+  return runBackofficeCheckJS(payload);
 }
 
-function runBackofficeUpdate(payload) {
-  return runPythonScript(['update'], payload, 45000);
-}
 
 process.on('uncaughtException', (err) => {
 
