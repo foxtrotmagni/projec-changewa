@@ -48,6 +48,28 @@ function runBackofficeUpdate(payload) {
   });
 }
 
+function runBackofficeSetCookie(payload) {
+  return new Promise((resolve) => {
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
+    const child = execFile(pythonPath, [scriptPath, 'setcookie'], { timeout: 15000 }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('[Backoffice SetCookie Error]', error.message);
+        return resolve({ status: 'error', message: error.message });
+      }
+      try {
+        const res = JSON.parse(stdout.trim());
+        resolve(res);
+      } catch (e) {
+        resolve({ status: 'error', message: 'Failed to parse JSON response' });
+      }
+    });
+    child.stdin.write(JSON.stringify(payload));
+    child.stdin.end();
+  });
+}
+
+
 // Global Error Handler (Cegah bot mati jika koneksi internet terputus sementara)
 
 process.on('uncaughtException', (err) => {
@@ -338,7 +360,55 @@ bot.onText(/\/start/i, (msg) => {
   bot.sendMessage(chatId, menuText, { parse_mode: 'HTML', reply_to_message_id: msg.message_id, reply_markup: inlineKeyboard });
 });
 
+// State penampung sesi /setcookie interaktif per user Telegram
+const pendingSetCookieUsers = new Set();
+
+// Command /setcookie (Bisa langsung dengan argumen ATAU interaktif)
+bot.onText(/\/setcookie(?:\s+([\s\S]+))?/i, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from ? msg.from.id.toString() : "";
+  const cookieArg = match && match[1] ? match[1].trim() : "";
+
+  if (cookieArg) {
+    pendingSetCookieUsers.delete(userId);
+    const res = await runBackofficeSetCookie({ cookies: cookieArg });
+    if (res && res.status === "success") {
+      bot.sendMessage(chatId, "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+    } else {
+      bot.sendMessage(chatId, `❌ <b>Gagal menyimpan cookie:</b> ${res ? res.message : 'Unknown error'}`, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+    }
+  } else {
+    pendingSetCookieUsers.add(userId);
+    const promptMsg = "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE</b>\n\n" +
+      "Silakan balas/kirimkan string Cookie Session Backoffice Anda di bawah ini.\n\n" +
+      "<i>Contoh format:</i>\n" +
+      "<code>ASP.NET_SessionId=rktd3jzis0w...; __RequestVerificationToken=KHfX1Upn...</code>\n\n" +
+      "<i>(Ketik <code>/cancel</code> jika ingin membatalkan)</i>";
+    bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+  }
+});
+
+// Command /getcookie
+bot.onText(/\/getcookie/i, (msg) => {
+  const chatId = msg.chat.id;
+  const userCookiesFile = path.join(__dirname, 'backoffice_wa', 'user_cookies.json');
+  let cookieStatus = "Belum ada cookie tersimpan.";
+  if (fs.existsSync(userCookiesFile)) {
+    try {
+      const raw = fs.readFileSync(userCookiesFile, 'utf8');
+      const parsed = JSON.parse(raw);
+      const g = parsed.global || {};
+      const firstKey = Object.keys(g)[0];
+      if (firstKey && g[firstKey]) {
+        cookieStatus = `Aktif (${g[firstKey].substring(0, 45)}...)`;
+      }
+    } catch (e) {}
+  }
+  bot.sendMessage(chatId, `🔑 <b>STATUS COOKIE BACKOFFICE:</b>\n<code>${cookieStatus}</code>`, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+});
+
 // 2. Command /debug
+
 bot.onText(/\/debug/i, (msg) => {
   const chatId = msg.chat.id;
   const activeTickets = db.tickets.filter(t => t.status === "ACTIVE").length;
@@ -634,8 +704,32 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
 
 // Handling Pesan Baru (New Message)
 bot.on('message', (msg) => {
+  const userId = msg.from ? msg.from.id.toString() : "";
+  const text = (msg.text || "").trim();
+
+  if (text.toLowerCase() === '/cancel') {
+    if (pendingSetCookieUsers.has(userId)) {
+      pendingSetCookieUsers.delete(userId);
+      bot.sendMessage(msg.chat.id, "❌ Pengaturan cookie dibatalkan.", { reply_to_message_id: msg.message_id });
+      return;
+    }
+  }
+
+  if (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/')) {
+    pendingSetCookieUsers.delete(userId);
+    runBackofficeSetCookie({ cookies: text }).then(res => {
+      if (res && res.status === "success") {
+        bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+      } else {
+        bot.sendMessage(msg.chat.id, `❌ <b>Gagal menyimpan cookie:</b> ${res ? res.message : 'Unknown error'}`, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+      }
+    });
+    return;
+  }
+
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 // ATURAN 8: Handling Pesan yang Diedit (Edited Message)
 bot.on('edited_message', (msg) => {

@@ -54,6 +54,27 @@ def get_cookies(domain: str = None) -> str:
             pass
     return AUDIT_COOKIES.strip()
 
+def set_cookies(new_cookies: str, domain: str = None) -> None:
+    target_domain = normalize_domain(domain)
+    data = {}
+    if USER_COOKIES_FILE.exists():
+        try:
+            with open(USER_COOKIES_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+    if "global" not in data or not isinstance(data.get("global"), dict):
+        data["global"] = {}
+        
+    clean_cookie = new_cookies.strip()
+    data["global"][target_domain] = clean_cookie
+    data["global"]["groupbo-gd3.zoomwlb.com"] = clean_cookie
+    data["global"]["groupbo-ggolf7.nexwlb.com"] = clean_cookie
+    
+    with open(USER_COOKIES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
 def resolve_merchant_and_url(username: str, merchant_code_override: str = None) -> tuple[str, str]:
     raw_code = (merchant_code_override or "").strip().upper()
     

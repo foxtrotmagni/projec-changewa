@@ -236,6 +236,14 @@ async def run_update(data: dict) -> dict:
     else:
         return {"status": "error", "message": detail_msg, "detail_logs": results_log}
 
+async def run_setcookie(data: dict) -> dict:
+    from config import set_cookies
+    new_cookies = data.get("cookies", "").strip()
+    if not new_cookies:
+        return {"status": "error", "message": "String cookie kosong."}
+    set_cookies(new_cookies)
+    return {"status": "success", "message": "Cookie Backoffice berhasil diperbarui & disimpan!"}
+
 def main():
     if len(sys.argv) < 2:
         print(json.dumps({"status": "error", "message": "Argumen tidak lengkap"}))
@@ -260,8 +268,11 @@ def main():
         res = asyncio.run(run_check(data))
     elif cmd == "update":
         res = asyncio.run(run_update(data))
+    elif cmd == "setcookie":
+        res = asyncio.run(run_setcookie(data))
     else:
         res = {"status": "error", "message": "Command tidak dikenal"}
+
         
     print(json.dumps(res))
 
