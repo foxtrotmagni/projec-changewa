@@ -594,18 +594,111 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
   });
 }
 
+const USER_COOKIES_FILE = path.join(__dirname, 'backoffice_wa', 'user_cookies.json');
+
+function saveUserCookieJS(cookiesStr, userKey = "global") {
+
+  let data = {};
+  if (fs.existsSync(USER_COOKIES_FILE)) {
+    try {
+      data = JSON.parse(fs.readFileSync(USER_COOKIES_FILE, 'utf8'));
+    } catch (e) {
+      data = {};
+    }
+  }
+  const cleanCookie = cookiesStr.trim();
+  if (!data.global) data.global = {};
+  data.global["groupbo-gd3.zoomwlb.com"] = cleanCookie;
+  data.global["groupbo-ggolf7.nexwlb.com"] = cleanCookie;
+
+  if (userKey) {
+    const ukey = String(userKey);
+    if (!data[ukey]) data[ukey] = {};
+    data[ukey]["groupbo-gd3.zoomwlb.com"] = cleanCookie;
+    data[ukey]["groupbo-ggolf7.nexwlb.com"] = cleanCookie;
+  }
+
+  try {
+    const dir = path.dirname(USER_COOKIES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(USER_COOKIES_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.error("[saveUserCookieJS Error]", e);
+  }
+}
+
 // Handling Pesan Baru (New Message)
 bot.on('message', async (msg) => {
   if (!msg) return;
+  const chatId = msg.chat.id;
+  const userId = msg.from ? msg.from.id.toString() : "";
   const text = (msg.text || msg.caption || "").trim();
 
-  // Biarkan command /setcookie & /getcookie ditangani oleh Local Worker di Komputer Lokal
-  if (text.startsWith('/setcookie') || text.startsWith('/getcookie') || text.includes('ASP.NET_SessionId') || text.includes('__RequestVerificationToken')) {
+  // 1. Handling /cancel
+  if (text.toLowerCase() === '/cancel') {
+    if (pendingSetCookieUsers.has(userId)) {
+      pendingSetCookieUsers.delete(userId);
+      bot.sendMessage(chatId, "❌ Pengaturan cookie dibatalkan.").catch(() => {});
+      return;
+    }
+  }
+
+  // 2. Handling /getcookie command
+  if (/^\/getcookie(?:@\w+)?/i.test(text)) {
+    let cookieStatus = "Belum ada cookie tersimpan.";
+    if (fs.existsSync(USER_COOKIES_FILE)) {
+      try {
+        const raw = fs.readFileSync(USER_COOKIES_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        const g = parsed.global || {};
+        const firstKey = Object.keys(g)[0];
+        if (firstKey && g[firstKey]) {
+          cookieStatus = `Aktif (${g[firstKey].substring(0, 45)}...)`;
+        }
+      } catch (e) {}
+    }
+    bot.sendMessage(chatId, `🔑 <b>STATUS COOKIE BACKOFFICE:</b>\n<code>${cookieStatus}</code>`, { parse_mode: 'HTML' }).catch(() => {
+      bot.sendMessage(chatId, `🔑 STATUS COOKIE BACKOFFICE:\n${cookieStatus}`).catch(() => {});
+    });
+    return;
+  }
+
+  // 3. Handling /setcookie command ATAU Cookie text (Private & Group)
+  const isSetCookieCmd = /^\/setcookie(?:@\w+)?/i.test(text);
+  const isCookiePattern = text.includes("ASP.NET_SessionId") || text.includes("__RequestVerificationToken");
+  const isPendingUserReply = pendingSetCookieUsers.has(userId) && !text.startsWith('/');
+
+  if (isSetCookieCmd || isCookiePattern || isPendingUserReply) {
+    let cookieBody = text;
+    if (isSetCookieCmd) {
+      cookieBody = text.replace(/^\/setcookie(?:@\w+)?\s*/i, '').trim();
+    }
+
+    if (!cookieBody) {
+      pendingSetCookieUsers.add(userId);
+      const promptMsg = "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE</b>\n\n" +
+        "Silakan kirimkan perintah beserta Cookie Backoffice Anda dengan format di bawah ini:\n\n" +
+        "<code>/setcookie ASP.NET_SessionId=...; __RequestVerificationToken=...</code>\n\n" +
+        "<i>(Atau langsung balas pesan ini dengan string Cookie Anda)</i>";
+      bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML' }).catch(() => {
+        bot.sendMessage(chatId, promptMsg).catch(() => {});
+      });
+      return;
+    }
+
+    pendingSetCookieUsers.delete(userId);
+    saveUserCookieJS(cookieBody, userId);
+
+    const okMsg = "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nCookie session telah tersimpan dan siap digunakan untuk koneksi Backoffice.";
+    bot.sendMessage(chatId, okMsg, { parse_mode: 'HTML' }).catch(() => {
+      bot.sendMessage(chatId, "✅ COOKIE BACKOFFICE BERHASIL DISIMPAN! Cookie session telah tersimpan.").catch(() => {});
+    });
     return;
   }
 
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 
 
@@ -1029,7 +1122,18 @@ app.all('/api', (req, res) => {
   return res.json({ result: "error", message: "Aksi tidak dikenali." });
 });
 
+app.get('/api/cookies', (req, res) => {
+  if (fs.existsSync(USER_COOKIES_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(USER_COOKIES_FILE, 'utf8'));
+      return res.json(data);
+    } catch (e) {}
+  }
+  return res.json({});
+});
+
 app.listen(PORT, () => {
+
   console.log("\n=======================================================");
   console.log(`🚀 STANDALONE TELEGRAM BOT & WEB SERVER AKTIF!`);
   console.log(`🌐 Server Landing Page: http://localhost:${PORT}`);
