@@ -332,15 +332,23 @@ async def main():
                             # Handle /setcookie command on local worker
                             if text.startswith("/setcookie"):
                                 cookie_arg = text.replace("/setcookie", "").replace("@FOX_x_BOT", "").strip()
+                                sender_id = msg.get("from", {}).get("id")
                                 if cookie_arg:
-                                    sender_id = msg.get("from", {}).get("id")
                                     set_cookies(cookie_arg, user_key=sender_id)
                                     await tg_post("sendMessage", {
                                         "chat_id": msg["chat"]["id"],
-                                        "text": "✅ <b>COOKIE BACKOFFICE WORKER LOKAL BERHASIL DISIMPAN!</b>",
+                                        "text": "✅ <b>COOKIE BACKOFFICE WORKER LOKAL BERHASIL DISIMPAN!</b>\n\nBot sekarang terhubung ke Backoffice dari Komputer Lokal Anda.",
                                         "parse_mode": "HTML",
                                         "reply_to_message_id": msg_id
                                     })
+                                else:
+                                    await tg_post("sendMessage", {
+                                        "chat_id": msg["chat"]["id"],
+                                        "text": "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE (WORKER LOKAL)</b>\n\nSilakan kirimkan perintah beserta Cookie Backoffice Anda dengan format di bawah ini:\n\n<code>/setcookie ASP.NET_SessionId=...; __RequestVerificationToken=...</code>",
+                                        "parse_mode": "HTML",
+                                        "reply_to_message_id": msg_id
+                                    })
+
 
                             
                             # Detect Request Notice from Render Bot

@@ -4,69 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-// Auto-install python dependencies (httpx, bs4) on startup if missing
-function ensurePythonPackages() {
-  const pyCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
-  execFile(pyCmd, ['-m', 'pip', 'install', '--break-system-packages', 'httpx', 'beautifulsoup4', 'python-dotenv'], (err) => {
-    if (err) {
-      execFile(pyCmd, ['-m', 'pip', 'install', '--user', 'httpx', 'beautifulsoup4', 'python-dotenv'], (err2) => {
-        if (!err2) console.log('[Python Packages] Auto-installed python packages successfully.');
-      });
-    } else {
-      console.log('[Python Packages] Auto-installed python packages successfully.');
-    }
-  });
-}
-ensurePythonPackages();
-
-function runPythonScript(args, payload, timeoutMs = 35000) {
-
-  return new Promise((resolve) => {
-    const scriptPath = path.join(__dirname, 'backoffice_wa', 'wa_runner.py');
-    const primaryCmd = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
-    const fallbackCmd = primaryCmd === 'python3' ? 'python' : 'python3';
-
-    function attempt(cmd) {
-      const child = execFile(cmd, [scriptPath, ...args], { timeout: timeoutMs }, (error, stdout, stderr) => {
-        if (error) {
-          if (error.code === 'ENOENT' && cmd !== fallbackCmd) {
-            console.log(`[Python Runner] '${cmd}' not found, trying fallback '${fallbackCmd}'...`);
-            return attempt(fallbackCmd);
-          }
-          console.error(`[Python Runner Error with ${cmd}]`, error.message);
-          return resolve({ status: 'error', message: error.message });
-        }
-        try {
-          const res = JSON.parse(stdout.trim());
-          resolve(res);
-        } catch (e) {
-          console.error(`[Python Runner JSON Parse Error]`, stdout);
-          resolve({ status: 'error', message: 'Failed to parse JSON response' });
-        }
-      });
-      child.stdin.write(JSON.stringify(payload));
-      child.stdin.end();
-    }
-
-    attempt(primaryCmd);
-  });
-}
-
-function runBackofficeCheck(payload) {
-  return runPythonScript(['check'], payload, 35000);
-}
-
-function runBackofficeUpdate(payload) {
-  return runPythonScript(['update'], payload, 45000);
-}
-
-function runBackofficeSetCookie(payload) {
-  return runPythonScript(['setcookie'], payload, 15000);
-}
-
-
-
 // Global Error Handler (Cegah bot mati jika koneksi internet terputus sementara)
+
 
 process.on('uncaughtException', (err) => {
   console.error('[Global Warning] Uncaught Exception:', err.message || err);
@@ -658,84 +597,16 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
 // Handling Pesan Baru (New Message)
 bot.on('message', async (msg) => {
   if (!msg) return;
-  const chatId = msg.chat.id;
-  const userId = msg.from ? msg.from.id.toString() : "";
   const text = (msg.text || msg.caption || "").trim();
 
-  // 1. Handling /cancel
-  if (text.toLowerCase() === '/cancel') {
-    if (pendingSetCookieUsers.has(userId)) {
-      pendingSetCookieUsers.delete(userId);
-      bot.sendMessage(chatId, "❌ Pengaturan cookie dibatalkan.").catch(() => {});
-      return;
-    }
-  }
-
-  // 2. Handling /getcookie command
-  if (/^\/getcookie(?:@\w+)?/i.test(text)) {
-    const userCookiesFile = path.join(__dirname, 'backoffice_wa', 'user_cookies.json');
-    let cookieStatus = "Belum ada cookie tersimpan.";
-    if (fs.existsSync(userCookiesFile)) {
-      try {
-        const raw = fs.readFileSync(userCookiesFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        const g = parsed.global || {};
-        const firstKey = Object.keys(g)[0];
-        if (firstKey && g[firstKey]) {
-          cookieStatus = `Aktif (${g[firstKey].substring(0, 45)}...)`;
-        }
-      } catch (e) {}
-    }
-    bot.sendMessage(chatId, `🔑 <b>STATUS COOKIE BACKOFFICE:</b>\n<code>${cookieStatus}</code>`, { parse_mode: 'HTML' }).catch(() => {
-      bot.sendMessage(chatId, `🔑 STATUS COOKIE BACKOFFICE:\n${cookieStatus}`).catch(() => {});
-    });
-    return;
-  }
-
-  // 3. Handling /setcookie command ATAU Cookie text (Private & Group)
-  const isSetCookieCmd = /^\/setcookie(?:@\w+)?/i.test(text);
-  const isCookiePattern = text.includes("ASP.NET_SessionId") || text.includes("__RequestVerificationToken");
-  const isPendingUserReply = pendingSetCookieUsers.has(userId) && !text.startsWith('/');
-
-  if (isSetCookieCmd || isCookiePattern || isPendingUserReply) {
-    let cookieBody = text;
-    if (isSetCookieCmd) {
-      cookieBody = text.replace(/^\/setcookie(?:@\w+)?\s*/i, '').trim();
-    }
-
-    if (!cookieBody) {
-      // User hanya mengetik /setcookie -> Tampilkan instruksi & simpan ke state pending
-      pendingSetCookieUsers.add(userId);
-      const promptMsg = "🔑 <b>PERBARUI COOKIE SESSION BACKOFFICE</b>\n\n" +
-        "Silakan kirimkan perintah beserta Cookie Backoffice Anda dengan format di bawah ini:\n\n" +
-        "<code>/setcookie ASP.NET_SessionId=...; __RequestVerificationToken=...</code>\n\n" +
-        "<i>(Atau langsung balas pesan ini dengan string Cookie Anda)</i>";
-      bot.sendMessage(chatId, promptMsg, { parse_mode: 'HTML' }).catch(() => {
-        bot.sendMessage(chatId, promptMsg).catch(() => {});
-      });
-      return;
-    }
-
-    // Cookie body ada -> Simpan Cookie!
-    pendingSetCookieUsers.delete(userId);
-    const res = await runBackofficeSetCookie({ cookies: cookieBody, user_key: userId });
-
-    if (res && res.status === "success") {
-      const okMsg = "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.";
-      bot.sendMessage(chatId, okMsg, { parse_mode: 'HTML' }).catch(() => {
-        bot.sendMessage(chatId, "✅ COOKIE BACKOFFICE BERHASIL DISIMPAN! Bot sekarang dapat terhubung ke Backoffice.").catch(() => {});
-      });
-    } else {
-      const failMsg = `❌ <b>Gagal menyimpan cookie:</b> ${res ? res.message : 'Unknown error'}`;
-      bot.sendMessage(chatId, failMsg, { parse_mode: 'HTML' }).catch(() => {
-        bot.sendMessage(chatId, `❌ Gagal menyimpan cookie: ${res ? res.message : 'Unknown error'}`).catch(() => {});
-      });
-    }
+  // Biarkan command /setcookie & /getcookie ditangani oleh Local Worker di Komputer Lokal
+  if (text.startsWith('/setcookie') || text.startsWith('/getcookie') || text.includes('ASP.NET_SessionId') || text.includes('__RequestVerificationToken')) {
     return;
   }
 
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 
 
