@@ -707,6 +707,7 @@ bot.on('message', (msg) => {
   const userId = msg.from ? msg.from.id.toString() : "";
   const text = (msg.text || "").trim();
 
+  // 1. Deteksi pembatalan /cancel
   if (text.toLowerCase() === '/cancel') {
     if (pendingSetCookieUsers.has(userId)) {
       pendingSetCookieUsers.delete(userId);
@@ -715,11 +716,13 @@ bot.on('message', (msg) => {
     }
   }
 
-  if (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/')) {
+  // 2. Deteksi Otomatis Cookie string (ASP.NET_SessionId / __RequestVerificationToken)
+  const isCookiePattern = text.includes("ASP.NET_SessionId") || text.includes("__RequestVerificationToken");
+  if (isCookiePattern || (pendingSetCookieUsers.has(userId) && text && !text.startsWith('/'))) {
     pendingSetCookieUsers.delete(userId);
     runBackofficeSetCookie({ cookies: text }).then(res => {
       if (res && res.status === "success") {
-        bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
+        bot.sendMessage(msg.chat.id, "✅ <b>COOKIE BACKOFFICE TERDETEKSI & BERHASIL DISIMPAN!</b>\n\nBot sekarang dapat terhubung dan melakukan pengecekan serta eksekusi ke Backoffice secara otomatis.", { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       } else {
         bot.sendMessage(msg.chat.id, `❌ <b>Gagal menyimpan cookie:</b> ${res ? res.message : 'Unknown error'}`, { parse_mode: 'HTML', reply_to_message_id: msg.message_id });
       }
@@ -729,6 +732,7 @@ bot.on('message', (msg) => {
 
   handleIncomingTelegramMessage(msg, false);
 });
+
 
 
 // ATURAN 8: Handling Pesan yang Diedit (Edited Message)
