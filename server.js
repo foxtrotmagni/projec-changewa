@@ -1113,7 +1113,7 @@ app.all('/api', (req, res) => {
             } catch (e) { }
           }
 
-          // 1. Kirim PESAN 1: Format Permintaan Asli (Original Form Request)
+          // Kirim PESAN 1: Format Permintaan Asli (Original Form Request)
           const originalRequestNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
             `• Asset: <code>${escapeHtml(website)}</code>\n` +
             `• Username: <code>${escapeHtml(username)}</code>\n` +
@@ -1129,70 +1129,15 @@ app.all('/api', (req, res) => {
             sendReqOpts.reply_to_message_id = lastFwdMsgId;
           }
 
-          let reqSentMsg = null;
           try {
-            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
+            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
           } catch (errReq) {
             delete sendReqOpts.reply_to_message_id;
-            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
+            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
           }
 
-          // 2. Kirim PESAN 2: Hasil Pengecekan Nomor WA Baru + Tombol Aksi (Me-reply Pesan 1)
-          const checkRes = await runBackofficeCheck({
-            username: username,
-            asset: website,
-            old_wa: waLama,
-            new_wa: waBaru,
-            telegram_name: namaLengkap
-          });
+          console.log(`[Admin Notice Sent] Ticket ${ticket} request notice sent to ${TARGET_GROUP_ID}`);
 
-          let checkReportText = "";
-          if (checkRes && checkRes.status === "success" && checkRes.report_text) {
-            item.boCheck = {
-              player_guid: checkRes.player_guid,
-              merchant_code: checkRes.merchant_code,
-              dupe_guids: checkRes.dupe_guids
-            };
-            saveDatabase();
-            checkReportText = checkRes.report_text;
-          } else {
-            checkReportText = "🔍 <b>PENGECEKAN NOMOR WHATSAPP BARU</b>\n\n" +
-              `Player  : <code>${escapeHtml(username)}</code>\n` +
-              `Asset   : <code>${escapeHtml(website)}</code>\n` +
-              `Nama    : <b>${escapeHtml(namaLengkap)}</b>\n` +
-              `Old WA  : <code>${escapeHtml(waLama)}</code>\n` +
-              `New WA  : <code>${escapeHtml(waBaru)}</code>\n\n` +
-              "<b>Status :</b>\n⚠️ <i>Gagal menghubungi backoffice check. Silakan periksa manual.</i>\n\n" +
-              "Lanjutkan pergantian nomor WhatsApp?\n\n" +
-              "🔔 CC: @khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
-          }
-
-          const inlineKeyboard = {
-            inline_keyboard: [
-              [
-                { text: "🟢 Done Update", callback_data: `btn_done_${ticket}` },
-                { text: "🔴 Reject", callback_data: `btn_reject_${ticket}` }
-              ],
-              [
-                { text: "🟪 Already Registered", callback_data: `btn_already_${ticket}` }
-              ]
-            ]
-          };
-
-          const checkOpts = {
-            parse_mode: 'HTML',
-            reply_markup: inlineKeyboard
-          };
-          if (reqSentMsg && reqSentMsg.message_id) {
-            checkOpts.reply_to_message_id = reqSentMsg.message_id;
-          }
-
-          await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts).catch(async () => {
-            delete checkOpts.reply_to_message_id;
-            await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts);
-          });
-
-          console.log(`[Admin Forward Success] Ticket ${ticket} notified (Req + Check) to ${TARGET_GROUP_ID}`);
 
         }
       } catch (errGroup) {
