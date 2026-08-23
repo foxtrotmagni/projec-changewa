@@ -39,12 +39,18 @@ function resolveBaseUrlJS(merchantCode) {
 
 async function searchPlayerJS(username, merchantCode, baseUrl, cookiesStr) {
   const url = `${baseUrl}/Player/_PlayerListing`;
-  const body = new URLSearchParams({
+  const bodyParams = {
     MerchantCode: merchantCode,
     Username: username.trim(),
     PageSize: '10',
     PageIndex: '1'
-  }).toString();
+  };
+  const tokenMatch = cookiesStr.match(/__RequestVerificationToken=([^;]+)/);
+  if (tokenMatch && tokenMatch[1]) {
+    bodyParams['__RequestVerificationToken'] = tokenMatch[1].trim();
+  }
+  const body = new URLSearchParams(bodyParams).toString();
+
 
   try {
     const res = await fetch(url, {
