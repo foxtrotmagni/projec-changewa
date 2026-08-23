@@ -943,6 +943,31 @@ app.all('/api', (req, res) => {
             } catch (e) { }
           }
 
+          // 1. Kirim PESAN 1: Format Permintaan Asli (Original Form Request)
+          const originalRequestNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
+            `• Asset: <code>${escapeHtml(website)}</code>\n` +
+            `• Username: <code>${escapeHtml(username)}</code>\n` +
+            `• Full Name : <code>${escapeHtml(namaLengkap)}</code>\n` +
+            `• Old Whatsapp : <code>${escapeHtml(waLama)}</code>\n` +
+            `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
+            "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
+            "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
+            "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+
+          const sendReqOpts = { parse_mode: 'HTML' };
+          if (lastFwdMsgId) {
+            sendReqOpts.reply_to_message_id = lastFwdMsgId;
+          }
+
+          let reqSentMsg = null;
+          try {
+            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
+          } catch (errReq) {
+            delete sendReqOpts.reply_to_message_id;
+            reqSentMsg = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
+          }
+
+          // 2. Kirim PESAN 2: Hasil Pengecekan Nomor WA Baru + Tombol Aksi (Me-reply Pesan 1)
           const checkRes = await runBackofficeCheck({
             username: username,
             asset: website,
@@ -951,7 +976,7 @@ app.all('/api', (req, res) => {
             telegram_name: namaLengkap
           });
 
-          let adminNotice = "";
+          let checkReportText = "";
           if (checkRes && checkRes.status === "success" && checkRes.report_text) {
             item.boCheck = {
               player_guid: checkRes.player_guid,
@@ -959,19 +984,18 @@ app.all('/api', (req, res) => {
               dupe_guids: checkRes.dupe_guids
             };
             saveDatabase();
-            adminNotice = checkRes.report_text;
+            checkReportText = checkRes.report_text;
           } else {
-            adminNotice = "🚨 <b>PERMINTAAN PERGANTIAN NOMOR WA</b> 🚨\n\n" +
-              `• Asset: <code>${escapeHtml(website)}</code>\n` +
-              `• Username: <code>${escapeHtml(username)}</code>\n` +
-              `• Full Name : <code>${escapeHtml(namaLengkap)}</code>\n` +
-              `• Old Whatsapp : <code>${escapeHtml(waLama)}</code>\n` +
-              `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
-              "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
-              "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
-              "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+            checkReportText = "🔍 <b>PENGECEKAN NOMOR WHATSAPP BARU</b>\n\n" +
+              `Player  : <code>${escapeHtml(username)}</code>\n` +
+              `Asset   : <code>${escapeHtml(website)}</code>\n` +
+              `Nama    : <b>${escapeHtml(namaLengkap)}</b>\n` +
+              `Old WA  : <code>${escapeHtml(waLama)}</code>\n` +
+              `New WA  : <code>${escapeHtml(waBaru)}</code>\n\n` +
+              "<b>Status :</b>\n⚠️ <i>Gagal menghubungi backoffice check. Silakan periksa manual.</i>\n\n" +
+              "Lanjutkan pergantian nomor WhatsApp?\n\n" +
+              "🔔 CC: @khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
           }
-
 
           const inlineKeyboard = {
             inline_keyboard: [
@@ -985,21 +1009,21 @@ app.all('/api', (req, res) => {
             ]
           };
 
-          const sendOptions = {
+          const checkOpts = {
             parse_mode: 'HTML',
             reply_markup: inlineKeyboard
           };
-          if (lastFwdMsgId) {
-            sendOptions.reply_to_message_id = lastFwdMsgId;
+          if (reqSentMsg && reqSentMsg.message_id) {
+            checkOpts.reply_to_message_id = reqSentMsg.message_id;
           }
 
-          await bot.sendMessage(TARGET_GROUP_ID, adminNotice, sendOptions).catch(async (errReply) => {
-            console.error("[Admin Notice Reply Warning, retry without reply_to]:", errReply.message);
-            delete sendOptions.reply_to_message_id;
-            await bot.sendMessage(TARGET_GROUP_ID, adminNotice, sendOptions);
+          await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts).catch(async () => {
+            delete checkOpts.reply_to_message_id;
+            await bot.sendMessage(TARGET_GROUP_ID, checkReportText, checkOpts);
           });
 
-          console.log(`[Admin Forward Success] Ticket ${ticket} (${msgIdsToForward.length} photos) forwarded & notified to ${TARGET_GROUP_ID}`);
+          console.log(`[Admin Forward Success] Ticket ${ticket} notified (Req + Check) to ${TARGET_GROUP_ID}`);
+
         }
       } catch (errGroup) {
         console.error("[Admin Group Exception]", errGroup.message);
