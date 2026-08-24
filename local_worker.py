@@ -219,57 +219,10 @@ async def handle_callback(cb: dict):
         return
 
     if data.startswith("loc_done:"):
-        raw_json = data[len("loc_done:"):]
-        try:
-            payload = json.loads(raw_json)
-        except Exception:
-            payload = {}
+        await tg_post("answerCallbackQuery", {"callback_query_id": cb_id, "text": "✅ Data berhasil di update"})
 
-        username = payload.get("username")
-        merchant_code = payload.get("asset")
-        player_guid = payload.get("player_guid")
-        new_wa = payload.get("new_wa")
-        dupe_guids = payload.get("dupe_guids", [])
-
-        await tg_post("answerCallbackQuery", {"callback_query_id": cb_id, "text": "⏳ Mengeksekusi update Backoffice dari Komputer Lokal..."})
-
-        _, base_url = resolve_merchant_and_url(username, merchant_code)
-        cookies_str = get_cookies(domain=base_url)
-
-        results_log = []
-        if dupe_guids:
-            for dp in dupe_guids:
-                dp_uname = dp.get("username", "")
-                dp_recid = dp.get("recid", "")
-                if dp_recid and dp_uname.lower() != username.lower():
-                    cur_info = await get_player_current_contact(dp_recid, merchant_code, base_url, cookies_str)
-                    cur_wa = cur_info.get("wa", "").strip()
-                    cur_contact = cur_info.get("contact", "").strip()
-
-                    target_wa = cur_wa
-                    target_contact = cur_contact
-                    cleared = []
-                    if dp.get("has_wa_dupe") or cur_wa == new_wa:
-                        target_wa = ""
-                        cleared.append("WhatsApp")
-                    if dp.get("has_contact_dupe") or cur_contact == new_wa:
-                        target_contact = ""
-                        cleared.append("Nomor Kontak")
-
-                    if cleared:
-                        ok_clr, msg_clr = await scrape_and_update_contact(dp_recid, merchant_code, base_url, cookies_str, target_wa, target_contact)
-                        if ok_clr:
-                            results_log.append(f"✔️ {' & '.join(cleared)} pada user duplicate <b>{dp_uname}</b> berhasil dihapus")
-                        else:
-                            results_log.append(f"⚠️ Gagal menghapus pada user duplicate {dp_uname}: {msg_clr}")
-
-        ok_upd, msg_upd = await scrape_and_update_contact(player_guid, merchant_code, base_url, cookies_str, new_wa, new_wa)
-        if ok_upd:
-            results_log.append(f"✔️ Nomor WhatsApp <b>{new_wa}</b> berhasil di-update ke user <b>{username}</b>")
-
-        detail_str = "\n\n<b>Detail Proses:</b>\n" + "\n".join(results_log) if results_log else ""
         current_caption = msg.get("text", "")
-        new_text = current_caption + f"\n\n✅ <b>[ STATUS: Done Update oleh @{clicker_name} ]</b>{detail_str}"
+        new_text = current_caption + f"\n\n✅ <b>[ STATUS: Done Update oleh @{clicker_name} ]</b>"
 
         await tg_post("editMessageText", {
             "chat_id": msg["chat"]["id"],

@@ -1190,26 +1190,10 @@ bot.on('callback_query', async (query) => {
     item.status = 'USED';
     saveDatabase();
     syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'USED' });
-    bot.answerCallbackQuery(query.id, { text: "⏳ Mengeksekusi update di Backoffice...", show_alert: false }).catch(() => { });
-
-    const respObj = db.responses.find(r => r.ticket === item.ticket) || {};
-    const boData = item.boCheck || {};
-    
-    const updateRes = await runBackofficeUpdate({
-      username: item.username,
-      asset: item.asset,
-      player_guid: boData.player_guid || "",
-      new_wa: respObj.waBaru || "",
-      dupe_guids: boData.dupe_guids || []
-    });
-
-    let detailStr = "";
-    if (updateRes && updateRes.detail_logs && updateRes.detail_logs.length > 0) {
-      detailStr = "\n\n<b>Detail Proses:</b>\n" + updateRes.detail_logs.join("\n");
-    }
+    bot.answerCallbackQuery(query.id, { text: "Data berhasil di update✅", show_alert: false }).catch(() => { });
 
     await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
-    updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>${detailStr}`);
+    updateAdminMessage(query, `✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>`);
 
   }
  else if (actionType === 'reject') {
