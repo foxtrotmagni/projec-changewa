@@ -486,49 +486,22 @@ function syncToGoogleSheets(params) {
 // =====================================================================
 // HELPER FORWARD BATCH (MELAKUKAN FORWARD 1 ALBUM LENGKAP SEKALIGUS)
 // =====================================================================
-function forwardTelegramMessagesBatch(chatId, fromChatId, messageIds) {
-  return new Promise((resolve, reject) => {
-    const numericIds = messageIds.map(id => parseInt(id)).filter(id => !isNaN(id));
-    numericIds.sort((a, b) => a - b);
+async function forwardTelegramMessagesBatch(chatId, fromChatId, messageIds) {
+  const numericIds = Array.from(new Set(messageIds.map(id => parseInt(id)).filter(id => !isNaN(id))));
+  numericIds.sort((a, b) => a - b);
+  if (numericIds.length === 0) return [];
 
-    const postData = JSON.stringify({
-      chat_id: chatId,
-      from_chat_id: fromChatId,
-      message_ids: numericIds
-    });
+  // Gunakan bot.forwardMessages untuk mem-forward 1 album sekaligus secara native
+  try {
+    const results = await bot.forwardMessages(chatId, fromChatId, numericIds);
+    if (Array.isArray(results) && results.length > 0) {
+      return results;
+    }
+  } catch (err) {
+    console.error("[forwardMessages Error]", err.message);
+  }
 
-    const options = {
-      hostname: 'api.telegram.org',
-      port: 443,
-      path: `/bot${TELEGRAM_TOKEN}/forwardMessages`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          if (parsed.ok) {
-            resolve(parsed.result);
-          } else {
-            reject(new Error(parsed.description || "forwardMessages batch failed"));
-          }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on('error', (err) => reject(err));
-    req.write(postData);
-    req.end();
-  });
+  return [];
 }
 
 // =====================================================================
@@ -1334,41 +1307,39 @@ app.all('/api', (req, res) => {
             const fromStore = mediaGroupStore[mgId] || [];
             const fromDb = (db.mediaGroups && db.mediaGroups[mgId]) || [];
             const fromItem = item.mediaGroupIds || [];
-            msgIdsToForward = Array.from(new Set([...fromStore, ...fromDb, ...fromItem].filter(Boolean)));
-          }
-          if (msgIdsToForward.length === 0) {
-            msgIdsToForward = [item.msgKey ? item.msgKey.split('_')[0] : null];
+            let allCaptured = Array.from(new Set([...fromStore, ...fromDb, ...fromItem].map(id => parseInt(id)).filter(id => !isNaN(id))));
+            allCaptured.sort((a, b) => a - b);
+
+            if (allCaptured.length === 1) {
+              const mainId = allCaptured[0];
+              const candidateSet = new Set();
+              for (let delta = -4; delta <= 4; delta++) {
+                if (mainId + delta > 0) candidateSet.add(mainId + delta);
+              }
+              msgIdsToForward = Array.from(candidateSet).sort((a, b) => a - b);
+            } else {
+              msgIdsToForward = allCaptured;
+            }
           }
 
-          // Filter unik & urutkan secara numerik ascending agar foto di-forward urut
-          msgIdsToForward = Array.from(new Set(msgIdsToForward.filter(Boolean)));
-          msgIdsToForward.sort((a, b) => parseInt(a) - parseInt(b));
+          if (msgIdsToForward.length === 0 && item.msgKey) {
+            const mId = parseInt(item.msgKey.split('_')[0]);
+            if (!isNaN(mId)) msgIdsToForward = [mId];
+          }
 
           let lastFwdMsgId = null;
 
-          if (msgIdsToForward.length > 1) {
+          if (msgIdsToForward.length > 0) {
             try {
               const fwdResults = await forwardTelegramMessagesBatch(TARGET_GROUP_ID, item.chatId, msgIdsToForward);
               if (Array.isArray(fwdResults) && fwdResults.length > 0) {
                 const lastMsg = fwdResults[fwdResults.length - 1];
-                lastFwdMsgId = lastMsg.message_id;
-                console.log(`[Admin Forward Batch Success] Forwarded album (${msgIdsToForward.length} photos as 1 album) to ${TARGET_GROUP_ID}`);
+                lastFwdMsgId = (typeof lastMsg === 'object' && lastMsg.message_id) ? lastMsg.message_id : (typeof lastMsg === 'number' ? lastMsg : null);
+                console.log(`[Admin Forward Batch Success] Forwarded album (${fwdResults.length} items as 1 album) to ${TARGET_GROUP_ID}`);
               }
             } catch (errBatch) {
-              console.error("[Admin Forward Batch Warning, falling back to single forward]:", errBatch.message);
-              for (const mId of msgIdsToForward) {
-                if (!mId) continue;
-                try {
-                  const fwd = await bot.forwardMessage(TARGET_GROUP_ID, item.chatId, mId);
-                  if (fwd && fwd.message_id) lastFwdMsgId = fwd.message_id;
-                } catch (e) { }
-              }
+              console.error("[Admin Forward Batch Exception]:", errBatch.message);
             }
-          } else if (msgIdsToForward.length === 1) {
-            try {
-              const fwd = await bot.forwardMessage(TARGET_GROUP_ID, item.chatId, msgIdsToForward[0]);
-              if (fwd && fwd.message_id) lastFwdMsgId = fwd.message_id;
-            } catch (e) { }
           }
 
           // Kirim PESAN: Format Permintaan Asli (Original Form Request) + Tombol Aksi
