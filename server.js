@@ -523,26 +523,40 @@ const bot = new TelegramBot(TELEGRAM_TOKEN, {
 
 // Cache untuk mengumpulkan ID seluruh foto jika dikirim sebagai album (Media Group)
 const mediaGroupStore = {};
+const mediaGroupPhotoStore = {};
 bot.on('message', (msg) => {
-  if (msg && msg.media_group_id) {
-    const mgId = msg.media_group_id.toString();
-    if (!mediaGroupStore[mgId]) {
-      mediaGroupStore[mgId] = [];
-    }
-    const msgIdStr = msg.message_id.toString();
-    if (!mediaGroupStore[mgId].includes(msgIdStr)) {
-      mediaGroupStore[mgId].push(msgIdStr);
-      mediaGroupStore[mgId].sort((a, b) => parseInt(a) - parseInt(b));
+  if (msg) {
+    if (msg.photo && msg.photo.length > 0) {
+      const highestResPhoto = msg.photo[msg.photo.length - 1].file_id;
+      if (msg.media_group_id) {
+        const mgId = msg.media_group_id.toString();
+        if (!mediaGroupPhotoStore[mgId]) mediaGroupPhotoStore[mgId] = [];
+        if (!mediaGroupPhotoStore[mgId].includes(highestResPhoto)) {
+          mediaGroupPhotoStore[mgId].push(highestResPhoto);
+        }
+      }
     }
 
-    if (!db.mediaGroups) db.mediaGroups = {};
-    db.mediaGroups[mgId] = [...mediaGroupStore[mgId]];
+    if (msg.media_group_id) {
+      const mgId = msg.media_group_id.toString();
+      if (!mediaGroupStore[mgId]) {
+        mediaGroupStore[mgId] = [];
+      }
+      const msgIdStr = msg.message_id.toString();
+      if (!mediaGroupStore[mgId].includes(msgIdStr)) {
+        mediaGroupStore[mgId].push(msgIdStr);
+        mediaGroupStore[mgId].sort((a, b) => parseInt(a) - parseInt(b));
+      }
 
-    const matchingTicket = db.tickets.find(t => t.mediaGroupId === mgId);
-    if (matchingTicket) {
-      matchingTicket.mediaGroupIds = [...mediaGroupStore[mgId]];
+      if (!db.mediaGroups) db.mediaGroups = {};
+      db.mediaGroups[mgId] = [...mediaGroupStore[mgId]];
+
+      const matchingTicket = db.tickets.find(t => t.mediaGroupId === mgId);
+      if (matchingTicket) {
+        matchingTicket.mediaGroupIds = [...mediaGroupStore[mgId]];
+      }
+      saveDatabase();
     }
-    saveDatabase();
   }
 });
 
@@ -1396,14 +1410,20 @@ app.all('/api', (req, res) => {
 
           let allFwdMsgIds = [];
           let photoFileIds = [];
+          if (item.mediaGroupId && mediaGroupPhotoStore[item.mediaGroupId.toString()]) {
+            photoFileIds = [...mediaGroupPhotoStore[item.mediaGroupId.toString()]];
+          }
+
           if (msgIdsToForward.length > 0) {
             try {
               const fwdResults = await forwardTelegramMessagesBatch(TARGET_GROUP_ID, item.chatId, msgIdsToForward);
               if (Array.isArray(fwdResults) && fwdResults.length > 0) {
                 allFwdMsgIds = fwdResults.map(m => (typeof m === 'object' && m.message_id) ? m.message_id : (typeof m === 'number' ? m : null)).filter(id => id != null);
-                for (const m of fwdResults) {
-                  if (m && m.photo && m.photo.length > 0) {
-                    photoFileIds.push(m.photo[m.photo.length - 1].file_id);
+                if (photoFileIds.length === 0) {
+                  for (const m of fwdResults) {
+                    if (m && m.photo && m.photo.length > 0) {
+                      photoFileIds.push(m.photo[m.photo.length - 1].file_id);
+                    }
                   }
                 }
                 const lastMsg = fwdResults[fwdResults.length - 1];
