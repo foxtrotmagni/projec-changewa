@@ -5,7 +5,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
-const ADMIN_CC_TAGS = "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+const ADMIN_CC_TAGS = "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1 @SUPERFOXTROT_bot";
 
 function getCookieJS(domain, userKey) {
   if (fs.existsSync(USER_COOKIES_FILE)) {
@@ -1414,7 +1414,7 @@ app.all('/api', (req, res) => {
             `• New Whatsapp : <code>${escapeHtml(waBaru)}</code>\n\n` +
             "📌 <b>TINDAKAN UNTUK TIM ADMIN:</b>\n" +
             "<i>PENTING: Harap segera perbarui data nomor WhatsApp pelanggan ini pada menu <b>Detail Contact / Profil Akun</b> di database website terkait. Terima kasih!</i>\n\n" +
-            "@khelfine @PaoPao11112022 @Hlmnopxyz88 @Dickyder_1";
+            ADMIN_CC_TAGS;
 
           const inlineKeyboard = {
             inline_keyboard: [
