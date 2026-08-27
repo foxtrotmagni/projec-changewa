@@ -306,7 +306,8 @@ const AUTHORIZED_CLEAR_USERS = ["khelfine", "paopao11112022", "hlmnopxyz88"]; //
 // =====================================================================
 let db = {
   tickets: [],    // { timestamp, chatId, msgKey, asset, username, ticket, status, opened, accessKey }
-  responses: []   // { timestamp, ticket, website, username, namaLengkap, waLama, waBaru }
+  responses: [],  // { timestamp, ticket, website, username, namaLengkap, waLama, waBaru }
+  mediaGroups: {} // { [media_group_id]: ["msgId1", "msgId2"] }
 };
 
 function fetchUrlTextAsync(urlStr) {
@@ -360,6 +361,17 @@ async function fetchCloudDatabaseOnStartup() {
           }
         });
       }
+      if (cloudDb.mediaGroups && typeof cloudDb.mediaGroups === 'object') {
+        if (!db.mediaGroups) db.mediaGroups = {};
+        for (const k in cloudDb.mediaGroups) {
+          if (!db.mediaGroups[k]) {
+            db.mediaGroups[k] = cloudDb.mediaGroups[k];
+          } else {
+            db.mediaGroups[k] = Array.from(new Set([...db.mediaGroups[k], ...cloudDb.mediaGroups[k]])).sort((a, b) => parseInt(a) - parseInt(b));
+          }
+          mediaGroupStore[k] = [...db.mediaGroups[k]];
+        }
+      }
       if (mergedCount > 0) {
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
         console.log(`[Cloud DB Persistent] Berhasil memuat ${mergedCount} data tiket dari Cloud Raw.`);
@@ -377,7 +389,13 @@ function loadDatabase() {
       db = JSON.parse(raw);
       if (!db.tickets) db.tickets = [];
       if (!db.responses) db.responses = [];
-      console.log(`[DB Local] Memuat ${db.tickets.length} tiket & ${db.responses.length} respons.`);
+      if (!db.mediaGroups) db.mediaGroups = {};
+
+      for (const mgId in db.mediaGroups) {
+        mediaGroupStore[mgId] = Array.from(new Set(db.mediaGroups[mgId])).sort((a, b) => parseInt(a) - parseInt(b));
+      }
+
+      console.log(`[DB Local] Memuat ${db.tickets.length} tiket, ${db.responses.length} respons, & ${Object.keys(db.mediaGroups).length} media groups.`);
     } else {
       saveDatabase();
     }
@@ -532,13 +550,24 @@ const bot = new TelegramBot(TELEGRAM_TOKEN, {
 const mediaGroupStore = {};
 bot.on('message', (msg) => {
   if (msg && msg.media_group_id) {
-    if (!mediaGroupStore[msg.media_group_id]) {
-      mediaGroupStore[msg.media_group_id] = [];
+    const mgId = msg.media_group_id.toString();
+    if (!mediaGroupStore[mgId]) {
+      mediaGroupStore[mgId] = [];
     }
     const msgIdStr = msg.message_id.toString();
-    if (!mediaGroupStore[msg.media_group_id].includes(msgIdStr)) {
-      mediaGroupStore[msg.media_group_id].push(msgIdStr);
+    if (!mediaGroupStore[mgId].includes(msgIdStr)) {
+      mediaGroupStore[mgId].push(msgIdStr);
+      mediaGroupStore[mgId].sort((a, b) => parseInt(a) - parseInt(b));
     }
+
+    if (!db.mediaGroups) db.mediaGroups = {};
+    db.mediaGroups[mgId] = [...mediaGroupStore[mgId]];
+
+    const matchingTicket = db.tickets.find(t => t.mediaGroupId === mgId);
+    if (matchingTicket) {
+      matchingTicket.mediaGroupIds = [...mediaGroupStore[mgId]];
+    }
+    saveDatabase();
   }
 });
 
@@ -823,9 +852,12 @@ function handleIncomingTelegramMessage(msg, isEdit = false) {
     const portalUrl = `${PORTAL_BASE_URL}?k=${newAccessKey}`;
 
     let albumMsgIds = [msgId];
-    if (msg.media_group_id && mediaGroupStore[msg.media_group_id] && mediaGroupStore[msg.media_group_id].length > 0) {
-      albumMsgIds = [...mediaGroupStore[msg.media_group_id]];
-      if (!albumMsgIds.includes(msgId)) albumMsgIds.push(msgId);
+    if (msg.media_group_id) {
+      const mgId = msg.media_group_id.toString();
+      const fromStore = mediaGroupStore[mgId] || [];
+      const fromDb = (db.mediaGroups && db.mediaGroups[mgId]) || [];
+      albumMsgIds = Array.from(new Set([...fromStore, ...fromDb, msgId].filter(Boolean)));
+      albumMsgIds.sort((a, b) => parseInt(a) - parseInt(b));
     }
 
     const newEntry = {
@@ -1297,11 +1329,14 @@ app.all('/api', (req, res) => {
       try {
         if (item.chatId && (item.msgKey || item.mediaGroupIds || item.mediaGroupId)) {
           let msgIdsToForward = [];
-          if (item.mediaGroupId && mediaGroupStore[item.mediaGroupId] && mediaGroupStore[item.mediaGroupId].length > 0) {
-            msgIdsToForward = [...mediaGroupStore[item.mediaGroupId]];
-          } else if (item.mediaGroupIds && item.mediaGroupIds.length > 0) {
-            msgIdsToForward = [...item.mediaGroupIds];
-          } else {
+          if (item.mediaGroupId) {
+            const mgId = item.mediaGroupId.toString();
+            const fromStore = mediaGroupStore[mgId] || [];
+            const fromDb = (db.mediaGroups && db.mediaGroups[mgId]) || [];
+            const fromItem = item.mediaGroupIds || [];
+            msgIdsToForward = Array.from(new Set([...fromStore, ...fromDb, ...fromItem].filter(Boolean)));
+          }
+          if (msgIdsToForward.length === 0) {
             msgIdsToForward = [item.msgKey ? item.msgKey.split('_')[0] : null];
           }
 
