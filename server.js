@@ -1395,11 +1395,17 @@ app.all('/api', (req, res) => {
           let lastFwdMsgId = null;
 
           let allFwdMsgIds = [];
+          let photoFileIds = [];
           if (msgIdsToForward.length > 0) {
             try {
               const fwdResults = await forwardTelegramMessagesBatch(TARGET_GROUP_ID, item.chatId, msgIdsToForward);
               if (Array.isArray(fwdResults) && fwdResults.length > 0) {
                 allFwdMsgIds = fwdResults.map(m => (typeof m === 'object' && m.message_id) ? m.message_id : (typeof m === 'number' ? m : null)).filter(id => id != null);
+                for (const m of fwdResults) {
+                  if (m && m.photo && m.photo.length > 0) {
+                    photoFileIds.push(m.photo[m.photo.length - 1].file_id);
+                  }
+                }
                 const lastMsg = fwdResults[fwdResults.length - 1];
                 lastFwdMsgId = (typeof lastMsg === 'object' && lastMsg.message_id) ? lastMsg.message_id : (typeof lastMsg === 'number' ? lastMsg : null);
                 console.log(`[Admin Forward Batch Success] Forwarded album (${fwdResults.length} items as 1 album) to ${TARGET_GROUP_ID}`);
@@ -1464,6 +1470,7 @@ app.all('/api', (req, res) => {
               origin_chat_id: TARGET_GROUP_ID,
               origin_msg_id: lastFwdMsgId,
               origin_msg_ids: allFwdMsgIds,
+              photo_file_ids: photoFileIds,
               notice_msg_id: noticeMessageId
             });
             console.log(`[Bridge Queue Pushed] Ticket ${ticket} queued for SUPERFOXTROT_bot forwarding`);
