@@ -310,6 +310,8 @@ let db = {
   mediaGroups: {} // { [media_group_id]: ["msgId1", "msgId2"] }
 };
 
+const pendingTriggers = [];
+
 function fetchUrlTextAsync(urlStr) {
   return new Promise((resolve) => {
     function req(u, depth = 5) {
@@ -1436,17 +1438,33 @@ app.all('/api', (req, res) => {
             sendReqOpts.reply_to_message_id = lastFwdMsgId;
           }
 
+          let noticeMessageId = null;
           try {
-            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
+            const sentNotice = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts);
+            if (sentNotice) noticeMessageId = sentNotice.message_id;
           } catch (errReq) {
             delete sendReqOpts.reply_to_message_id;
-            await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
+            const sentNotice = await bot.sendMessage(TARGET_GROUP_ID, originalRequestNotice, sendReqOpts).catch(() => null);
+            if (sentNotice) noticeMessageId = sentNotice.message_id;
           }
 
           console.log(`[Admin Notice Sent] Ticket ${ticket} request notice sent to ${TARGET_GROUP_ID}`);
 
-
-
+          if (noticeMessageId || lastFwdMsgId) {
+            pendingTriggers.push({
+              id: Date.now().toString(),
+              type: 'ganti_wa',
+              username: username,
+              merchant_code: website,
+              nama_lengkap: namaLengkap,
+              wa_lama: waLama,
+              wa_baru: waBaru,
+              origin_chat_id: TARGET_GROUP_ID,
+              origin_msg_id: lastFwdMsgId,
+              notice_msg_id: noticeMessageId
+            });
+            console.log(`[Bridge Queue Pushed] Ticket ${ticket} queued for SUPERFOXTROT_bot forwarding`);
+          }
 
         }
       } catch (errGroup) {
@@ -1465,6 +1483,12 @@ app.all('/api', (req, res) => {
   }
 
   return res.json({ result: "error", message: "Aksi tidak dikenali." });
+});
+
+app.get('/api/pending_triggers', (req, res) => {
+  const list = [...pendingTriggers];
+  pendingTriggers.length = 0;
+  return res.json(list);
 });
 
 app.get('/api/cookies', (req, res) => {
