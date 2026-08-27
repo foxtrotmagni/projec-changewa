@@ -907,12 +907,75 @@ function saveUserCookieJS(cookiesStr, userKey = "global") {
   }
 }
 
-// Handling Pesan Baru (New Message)
 bot.on('message', async (msg) => {
   if (!msg) return;
   const chatId = msg.chat.id;
   const userId = msg.from ? msg.from.id.toString() : "";
   const text = (msg.text || msg.caption || "").trim();
+
+  // ── Inter-Bot Communication Handler ──
+  // Mendengarkan balasan (reply) dari MYFOXAUDIT_BOT / Admin terhadap pesan notice request pergantian WA
+  if (msg.reply_to_message && msg.reply_to_message.text && msg.reply_to_message.text.includes("PERMINTAAN PERGANTIAN NOMOR WA")) {
+    try {
+      const repliedText = msg.reply_to_message.text;
+      const clickerUsername = msg.from ? (msg.from.username ? `@${msg.from.username}` : msg.from.first_name) : "Admin";
+      
+      // Ekstrak data username & asset dari pesan reply_to_message
+      const userMatch = repliedText.match(/Username\s*:\s*([^\n\r]+)/i);
+      const assetMatch = repliedText.match(/Asset\s*:\s*([^\n\r]+)/i);
+      const targetUsername = userMatch ? userMatch[1].replace(/<code>|<\/code>/g, '').trim().toUpperCase() : "";
+      const targetAsset = assetMatch ? assetMatch[1].replace(/<code>|<\/code>/g, '').trim().toUpperCase() : "";
+
+      const item = db.tickets.find(t => {
+        if (t.status === 'USED') return false;
+        const isUserMatch = targetUsername && t.username && t.username.toUpperCase() === targetUsername;
+        const isAssetMatch = targetAsset && t.asset && t.asset.toUpperCase().includes(targetAsset);
+        return isUserMatch && isAssetMatch;
+      }) || db.tickets.slice().reverse().find(t => t.status === 'ACTIVE');
+
+      if (item) {
+        const targetCustomerChatId = item.chatId;
+        const originalMsgId = item.msgKey ? item.msgKey.split('_')[0] : null;
+        const tText = text.toUpperCase();
+
+        if (tText.includes("SUDAH BERHASIL") || tText.includes("BERHASIL DIUPDATE") || tText.includes("DONE UPDATE") || tText.includes("WA_YA")) {
+          item.status = 'USED';
+          saveDatabase();
+          syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'USED' });
+
+          await sendCustomerReply(targetCustomerChatId, "Data berhasil di update✅", originalMsgId);
+          
+          const editNoticeOpts = { chat_id: msg.chat.id, message_id: msg.reply_to_message.message_id, parse_mode: 'HTML' };
+          bot.editMessageText(`✅ <b>[ STATUS: Done Update oleh ${escapeHtml(clickerUsername)} ]</b>`, editNoticeOpts).catch(() => {});
+          console.log(`[Inter-Bot Sync Success] Ticket ${item.ticket} marked DONE_UPDATE via reply from ${clickerUsername}`);
+        }
+        else if (tText.includes("DIBATALKAN") || tText.includes("REJECT") || tText.includes("WA_TIDAK")) {
+          item.status = 'REJECTED';
+          saveDatabase();
+          syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'REJECTED' });
+
+          await sendCustomerReply(targetCustomerChatId, "Permintaan Dibatalkan❌", originalMsgId);
+
+          const editNoticeOpts = { chat_id: msg.chat.id, message_id: msg.reply_to_message.message_id, parse_mode: 'HTML' };
+          bot.editMessageText(`❌ <b>[ STATUS: Permintaan Dibatalkan oleh ${escapeHtml(clickerUsername)} ]</b>`, editNoticeOpts).catch(() => {});
+          console.log(`[Inter-Bot Sync Success] Ticket ${item.ticket} marked REJECTED via reply from ${clickerUsername}`);
+        }
+        else if (tText.includes("ALREADY REGISTERED") || tText.includes("SUDAH TERDAFTAR")) {
+          item.status = 'REJECTED';
+          saveDatabase();
+          syncToGoogleSheets({ action: 'update_status', ticket: item.ticket, status: 'REJECTED' });
+
+          await sendCustomerReply(targetCustomerChatId, `⚠️[ Tiket ${item.ticket}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]`, originalMsgId);
+
+          const editNoticeOpts = { chat_id: msg.chat.id, message_id: msg.reply_to_message.message_id, parse_mode: 'HTML' };
+          bot.editMessageText(`⚠️<b>[ Tiket ${item.ticket}: Permintaan dibatalkan karena nomor WhatsApp baru tersebut sudah terdaftar pada ID lain. ]</b>`, editNoticeOpts).catch(() => {});
+          console.log(`[Inter-Bot Sync Success] Ticket ${item.ticket} marked ALREADY_REGISTERED via reply from ${clickerUsername}`);
+        }
+      }
+    } catch (interBotErr) {
+      console.error("[Inter-Bot Exception]:", interBotErr.message);
+    }
+  }
 
   // 1. Handling /cancel
   if (text.toLowerCase() === '/cancel') {
